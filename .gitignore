@@ -1,0 +1,4 @@
+.env
+data/heat_risk.db
+__pycache__/
+data/raw/
