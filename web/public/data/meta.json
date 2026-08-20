@@ -1,0 +1,27 @@
+{
+  "area": {
+    "east": -95.38021,
+    "name": "Houston, TX",
+    "north": 29.779552,
+    "south": 29.694598,
+    "west": -95.4899
+  },
+  "granularityMeters": 100,
+  "period": {
+    "end": "2026-08-14",
+    "start": "2026-08-01"
+  },
+  "sources": {
+    "context": {
+      "fetchedAt": "2026-08-19T16:01:55.982380",
+      "provider": "OpenStreetMap via Overpass"
+    },
+    "temperature": {
+      "analytic": "tcm",
+      "endpoint": "/v1/heatmap",
+      "fetchedAt": "2026-08-19T15:49:39.152524",
+      "provider": "FortyGuard Temperature API"
+    }
+  },
+  "tileCount": 9941
+}
