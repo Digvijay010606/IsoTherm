@@ -231,12 +231,37 @@ def build_amenities(elements):
     return relief, parks
 
 
-def write_json(filename, payload):
+def compact(value):
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def format_grid_rows(values, cols, rows):
+    lines = []
+    for row in range(rows):
+        cells = values[row * cols : (row + 1) * cols]
+        lines.append("    [" + ",".join(compact(cell) for cell in cells) + "]")
+    return "[\n" + ",\n".join(lines) + "\n  ]"
+
+
+def format_object_list(items, indent="    "):
+    if not items:
+        return "[]"
+    lines = [indent + compact(item) for item in items]
+    return "[\n" + ",\n".join(lines) + "\n  ]"
+
+
+def write_text(filename, text):
     path = os.path.join(OUTPUT_DIR, filename)
     with open(path, "w", encoding="utf-8", newline="\n") as handle:
-        json.dump(payload, handle, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-        handle.write("\n")
+        handle.write(text.rstrip("\n") + "\n")
     return os.path.getsize(path)
+
+
+def write_json(filename, payload):
+    return write_text(
+        filename,
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
+    )
 
 
 def main():
@@ -270,9 +295,40 @@ def main():
 
     ranges = {name: layer_range(values) for name, values in grid["layers"].items()}
 
-    tiles_bytes = write_json("tiles.json", {**grid, "ranges": ranges})
-    zones_bytes = write_json("zones.json", {"zoneTiles": ZONE_TILES, "zones": zones})
-    amenities_bytes = write_json("amenities.json", {"relief": relief, "parks": parks})
+    layer_blocks = ",\n".join(
+        f'    "{name}": {format_grid_rows(grid["layers"][name], grid["cols"], grid["rows"])}'
+        for name in sorted(grid["layers"])
+    )
+
+    tiles_bytes = write_text(
+        "tiles.json",
+        "{\n"
+        f'  "bounds": {compact(grid["bounds"])},\n'
+        f'  "cols": {grid["cols"]},\n'
+        f'  "rows": {grid["rows"]},\n'
+        f'  "tileMeters": {grid["tileMeters"]},\n'
+        f'  "ranges": {compact(ranges)},\n'
+        '  "layers": {\n'
+        f"{layer_blocks}\n"
+        "  }\n"
+        "}",
+    )
+
+    zones_bytes = write_text(
+        "zones.json",
+        "{\n"
+        f'  "zoneTiles": {ZONE_TILES},\n'
+        f'  "zones": {format_object_list(zones)}\n'
+        "}",
+    )
+
+    amenities_bytes = write_text(
+        "amenities.json",
+        "{\n"
+        f'  "relief": {format_object_list(relief)},\n'
+        f'  "parks": {format_object_list(parks)}\n'
+        "}",
+    )
     meta_bytes = write_json(
         "meta.json",
         {
