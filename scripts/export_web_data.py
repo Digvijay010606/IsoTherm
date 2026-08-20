@@ -11,6 +11,7 @@ OUTPUT_DIR = os.path.join(REPO_ROOT, "web", "public", "data")
 TILE_METERS = 100
 ZONE_TILES = 15
 MIN_ZONE_TILES = 100
+MIN_NEIGHBOURS_TO_FILL = 5
 EARTH_METERS_PER_DEGREE = 111320.0
 
 RELIEF_AMENITIES = {
@@ -106,6 +107,35 @@ def build_grid(features):
     }
 
     return grid, placed, collisions
+
+
+def fill_interior_holes(values, cols, rows):
+    source = list(values)
+    filled = 0
+
+    for row in range(rows):
+        for col in range(cols):
+            index = row * cols + col
+            if source[index] is not None:
+                continue
+
+            neighbours = []
+            for row_offset in (-1, 0, 1):
+                for col_offset in (-1, 0, 1):
+                    if row_offset == 0 and col_offset == 0:
+                        continue
+                    near_row = row + row_offset
+                    near_col = col + col_offset
+                    if 0 <= near_row < rows and 0 <= near_col < cols:
+                        neighbour = source[near_row * cols + near_col]
+                        if neighbour is not None:
+                            neighbours.append(neighbour)
+
+            if len(neighbours) >= MIN_NEIGHBOURS_TO_FILL:
+                values[index] = round(sum(neighbours) / len(neighbours), 1)
+                filled += 1
+
+    return filled
 
 
 def layer_range(values):
@@ -288,6 +318,11 @@ def main():
     features = payload["map_data"]["features"]
 
     grid, placed, collisions = build_grid(features)
+
+    holes_filled = 0
+    for values in grid["layers"].values():
+        holes_filled = fill_interior_holes(values, grid["cols"], grid["rows"])
+
     zones = build_zones(grid)
 
     elements = json.loads(osm["data"])["elements"]
@@ -361,6 +396,7 @@ def main():
 
     print(f"grid          {grid['cols']} x {grid['rows']}")
     print(f"tiles placed  {placed} of {len(features)} (collisions {collisions})")
+    print(f"holes filled  {holes_filled} interior cells per layer")
     print(f"zones         {len(zones)}")
     print(f"relief        {len(relief)}")
     print(f"parks         {len(parks)}")
