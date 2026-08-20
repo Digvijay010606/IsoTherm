@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --ground: #08090b;
+  --app: #0c0d0f;
+  --surface: #14171a;
+  --surface-2: #16191c;
+  --line: #23262a;
+  --line-soft: #1b1e21;
+  --ink: #f2f1ee;
+  --ink-2: #c9c6c0;
+  --ink-3: #86847f;
+  --ink-4: #6e6c67;
+  --ink-5: #575652;
+  --accent: #4fc3b8;
+  --accent-ink: #06201e;
+  --heat-0: #35617f;
+  --heat-1: #4e93a0;
+  --heat-2: #e3b24a;
+  --heat-3: #dc7a3c;
+  --heat-4: #c2412e;
+  --heat-5: #7e1f1a;
+  --danger-ink: #f0857a;
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-app: var(--app);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-5: var(--ink-5);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-heat-0: var(--heat-0);
+  --color-heat-1: var(--heat-1);
+  --color-heat-2: var(--heat-2);
+  --color-heat-3: var(--heat-3);
+  --color-heat-4: var(--heat-4);
+  --color-heat-5: var(--heat-5);
+  --color-danger-ink: var(--danger-ink);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
