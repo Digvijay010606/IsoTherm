@@ -158,7 +158,10 @@ export default function MapPage() {
   );
 
   return (
-    <AppShell rail={rail}>
+    <AppShell
+      rail={rail}
+      onPlaceSelect={(place) => setSelectedZoneId(nearestZone(place.lat, place.lon).id)}
+    >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
         <section className="flex min-h-0 flex-col p-3 lg:flex-1">
           {activeLayer.status === "pending" ? (

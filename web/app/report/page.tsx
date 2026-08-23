@@ -7,7 +7,7 @@ import { Chip } from "@/components/Chip";
 import { ZoneThumb } from "@/components/ZoneThumb";
 import { CameraIcon, CheckIcon, ArrowRightIcon } from "@/components/icons";
 import { REPORT_CATEGORIES } from "@/lib/copy";
-import { ZONES, zoneLabel } from "@/lib/realData";
+import { ZONES, nearestZone, zoneLabel } from "@/lib/realData";
 import type { ReportCategoryId } from "@/lib/types";
 
 export default function ReportPage() {
@@ -22,7 +22,10 @@ export default function ReportPage() {
   const timeLabel = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
   return (
-    <AppShell>
+    <AppShell
+      searchPlaceholder="Search where the problem is"
+      onPlaceSelect={(place) => setZoneId(nearestZone(place.lat, place.lon).id)}
+    >
       <div className="flex min-h-0 flex-1 items-start justify-center overflow-y-auto p-4">
         <div className="w-full max-w-[620px] rounded-2xl border border-line bg-surface">
           {submitted && category ? (

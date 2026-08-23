@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Pending } from "@/components/Pending";
-import { ZONES, coolingGapZones, zoneLabel } from "@/lib/realData";
+import { ZONES, coolingGapZones, nearestZone, zoneLabel } from "@/lib/realData";
 import { TEMPERATURE_METRICS } from "@/lib/heatLayers";
 import type { HeatLayerId } from "@/lib/types";
 
@@ -16,6 +16,17 @@ const METRIC_FIELD: Record<HeatLayerId, (zone: (typeof ZONES)[number]) => number
 
 export default function ImpactPage() {
   const [metric, setMetric] = useState<HeatLayerId>("peak");
+  const [highlightedZoneId, setHighlightedZoneId] = useState<string | null>(null);
+
+  function focusZone(lat: number, lon: number) {
+    const zone = nearestZone(lat, lon);
+    setHighlightedZoneId(zone.id);
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`zone-row-${zone.id}`)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
 
   const ranked = [...ZONES].sort((a, b) => METRIC_FIELD[metric](b) - METRIC_FIELD[metric](a));
   const hottest = ranked[0];
@@ -60,7 +71,11 @@ export default function ImpactPage() {
   );
 
   return (
-    <AppShell rail={rail}>
+    <AppShell
+      rail={rail}
+      searchPlaceholder="Find a place in the ranking"
+      onPlaceSelect={(place) => focusZone(place.lat, place.lon)}
+    >
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-6xl px-4 py-5 lg:px-6">
           <h1 className="text-[21px] font-semibold tracking-tight text-ink text-balance">
@@ -118,7 +133,12 @@ export default function ImpactPage() {
                   return (
                     <div
                       key={zone.id}
-                      className="grid grid-cols-[26px_1fr_120px_58px] items-center gap-2.5 border-b border-line-soft py-2.5 last:border-none"
+                      id={`zone-row-${zone.id}`}
+                      className={`grid grid-cols-[26px_1fr_120px_58px] items-center gap-2.5 border-b border-line-soft py-2.5 last:border-none ${
+                        zone.id === highlightedZoneId
+                          ? "-mx-2 rounded-lg bg-accent/10 px-2 ring-1 ring-accent/40"
+                          : ""
+                      }`}
                     >
                       <span className="font-mono text-[10.5px] text-ink-5">{index + 1}</span>
                       <span className="truncate text-[12.5px] text-ink-2">{zoneLabel(zone)}</span>
