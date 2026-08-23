@@ -6,7 +6,7 @@ import { SectionLabel } from "@/components/SectionLabel";
 import { Pending } from "@/components/Pending";
 import { WarningIcon, DropIcon, ClockIcon, InfoIcon } from "@/components/icons";
 import { WARNING_SIGNS } from "@/lib/copy";
-import { ZONES, nearestRelief, reliefLabel, zoneLabel } from "@/lib/realData";
+import { ZONES, nearestRelief, nearestZone, reliefLabel, zoneLabel } from "@/lib/realData";
 
 export default function SafetyPage() {
   const [zoneId, setZoneId] = useState(ZONES[0].id);
@@ -51,7 +51,11 @@ export default function SafetyPage() {
   );
 
   return (
-    <AppShell rail={rail}>
+    <AppShell
+      rail={rail}
+      searchPlaceholder="Search your work area"
+      onPlaceSelect={(place) => setZoneId(nearestZone(place.lat, place.lon).id)}
+    >
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-6">
           <h1 className="text-[21px] font-semibold tracking-tight text-ink text-balance">

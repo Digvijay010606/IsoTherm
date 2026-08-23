@@ -371,6 +371,62 @@ def build_amenities(elements):
     return relief, parks
 
 
+PLACE_KIND_TAGS = ["leisure", "amenity", "shop", "tourism", "office", "building"]
+
+
+def classify_place_kind(tags):
+    if tags.get("highway"):
+        return "road"
+    for key in PLACE_KIND_TAGS:
+        value = tags.get(key)
+        if value and value not in {"yes", "no"}:
+            return value.replace("_", " ")
+    for key in PLACE_KIND_TAGS:
+        if tags.get(key) in {"yes"}:
+            return key
+    return "place"
+
+
+def build_places(elements):
+    way_centroids = resolve_way_centroids(elements)
+
+    named_points = {}
+
+    for element in elements:
+        tags = element.get("tags", {})
+        name = tags.get("name")
+        if not name:
+            continue
+
+        if element.get("type") == "node":
+            position = (element.get("lon"), element.get("lat"))
+        else:
+            position = way_centroids.get(element["id"])
+
+        if not position or position[0] is None:
+            continue
+
+        kind = classify_place_kind(tags)
+        key = (name, kind)
+        named_points.setdefault(key, []).append(position)
+
+    places = []
+    for (name, kind), points in named_points.items():
+        lon = sum(point[0] for point in points) / len(points)
+        lat = sum(point[1] for point in points) / len(points)
+        places.append(
+            {
+                "name": name,
+                "kind": kind,
+                "lat": round(lat, 5),
+                "lon": round(lon, 5),
+            }
+        )
+
+    places.sort(key=lambda place: (place["name"], place["kind"]))
+    return places
+
+
 def compact(value):
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
@@ -441,6 +497,8 @@ def main():
     landmark_candidates = build_landmark_candidates(elements)
     name_zones(zones, landmark_candidates)
 
+    places = build_places(elements)
+
     ranges = {name: layer_range(values) for name, values in grid["layers"].items()}
 
     layer_blocks = ",\n".join(
@@ -477,6 +535,13 @@ def main():
         f'  "parks": {format_object_list(parks)}\n'
         "}",
     )
+
+    places_bytes = write_text(
+        "places.json",
+        "{\n"
+        f'  "places": {format_object_list(places)}\n'
+        "}",
+    )
     meta_bytes = write_json(
         "meta.json",
         {
@@ -505,7 +570,7 @@ def main():
         },
     )
 
-    total_kb = (tiles_bytes + zones_bytes + amenities_bytes + meta_bytes) / 1024.0
+    total_kb = (tiles_bytes + zones_bytes + amenities_bytes + places_bytes + meta_bytes) / 1024.0
 
     print(f"grid          {grid['cols']} x {grid['rows']}")
     print(f"tiles placed  {placed} of {len(features)} (collisions {collisions})")
@@ -513,12 +578,14 @@ def main():
     print(f"zones         {len(zones)}")
     print(f"relief        {len(relief)}")
     print(f"parks         {len(parks)}")
+    print(f"places        {len(places)}")
     print(f"peak range    {ranges['peak'][0]} to {ranges['peak'][1]} C")
     print(f"mean range    {ranges['mean'][0]} to {ranges['mean'][1]} C")
     print()
     print(f"tiles.json      {tiles_bytes / 1024:8.1f} KB")
     print(f"zones.json      {zones_bytes / 1024:8.1f} KB")
     print(f"amenities.json  {amenities_bytes / 1024:8.1f} KB")
+    print(f"places.json     {places_bytes / 1024:8.1f} KB")
     print(f"meta.json       {meta_bytes / 1024:8.1f} KB")
     print(f"total           {total_kb:8.1f} KB")
 

@@ -2,15 +2,19 @@
 
 import Link from "next/link";
 import { NavCapsule } from "./NavCapsule";
+import { SearchBox } from "./SearchBox";
 import { PinIcon } from "./icons";
-import { AREA, PERIOD_START, PERIOD_END } from "@/lib/realData";
+import { AREA } from "@/lib/realData";
+import type { Place } from "@/lib/types";
 
 type AppShellProps = {
   rail?: React.ReactNode;
+  onPlaceSelect?: (place: Place) => void;
+  searchPlaceholder?: string;
   children: React.ReactNode;
 };
 
-export function AppShell({ rail, children }: AppShellProps) {
+export function AppShell({ rail, onPlaceSelect, searchPlaceholder, children }: AppShellProps) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-ground">
       <header className="flex shrink-0 flex-col items-center gap-2.5 border-b border-line-soft px-4 py-2.5 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:gap-3">
@@ -29,12 +33,17 @@ export function AppShell({ rail, children }: AppShellProps) {
           <NavCapsule />
         </div>
 
-        <div className="hidden items-center gap-2 justify-self-end rounded-full border border-line px-3 py-1.5 lg:flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          <span className="font-mono text-[11px] whitespace-nowrap text-ink-3">
-            {PERIOD_START} → {PERIOD_END}
-          </span>
-        </div>
+        {onPlaceSelect ? (
+          <>
+            <div className="hidden justify-self-end lg:block lg:w-[280px]">
+              <SearchBox onSelect={onPlaceSelect} placeholder={searchPlaceholder} />
+            </div>
+
+            <div className="w-full lg:hidden">
+              <SearchBox onSelect={onPlaceSelect} placeholder={searchPlaceholder} />
+            </div>
+          </>
+        ) : null}
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">

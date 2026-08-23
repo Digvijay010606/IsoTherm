@@ -37,6 +37,17 @@ export type Park = {
   lon: number;
 };
 
+export type Place = {
+  name: string;
+  kind: string;
+  lat: number;
+  lon: number;
+};
+
+export type PlacesFile = {
+  places: Place[];
+};
+
 export type AreaMeta = {
   name: string;
   south: number;
