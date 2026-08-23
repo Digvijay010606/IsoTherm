@@ -29,6 +29,22 @@ RELIEF_AMENITIES = {
 
 ZONE_COLUMN_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+LANDMARK_MAX_KM = 1.5
+
+LANDMARK_CATEGORIES = [
+    (lambda tags: tags.get("leisure") == "park", "park", 250, 0.55),
+    (
+        lambda tags: tags.get("amenity") == "university" or tags.get("building") == "university",
+        "university",
+        200,
+        0.60,
+    ),
+    (lambda tags: tags.get("amenity") == "hospital", "hospital", 150, 0.70),
+    (lambda tags: tags.get("amenity") == "school", "school", 150, 0.90),
+    (lambda tags: tags.get("amenity") in {"library", "community_centre"}, "civic", 100, 0.90),
+    (lambda tags: tags.get("highway") in {"motorway", "primary", "secondary"}, "road", 600, 0.75),
+]
+
 
 def read_latest(cursor, table, columns):
     cursor.execute(
@@ -141,6 +157,100 @@ def fill_interior_holes(values, cols, rows):
 def layer_range(values):
     present = [value for value in values if value is not None]
     return [min(present), max(present)]
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    radius = 6371.0
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(delta_lat / 2) ** 2
+        + math.sin(delta_lon / 2) ** 2 * math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+    )
+    return 2 * radius * math.asin(math.sqrt(a))
+
+
+def bearing_label(from_lat, from_lon, to_lat, to_lon):
+    delta_lat = to_lat - from_lat
+    delta_lon = to_lon - from_lon
+    angle = math.degrees(math.atan2(delta_lon, delta_lat)) % 360
+    directions = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]
+    return directions[round(angle / 45) % 8]
+
+
+def build_landmark_candidates(elements):
+    node_positions = {}
+    for element in elements:
+        if element.get("type") == "node":
+            node_positions[element["id"]] = (element["lat"], element["lon"])
+
+    candidates = {}
+
+    for element in elements:
+        tags = element.get("tags", {})
+        name = tags.get("name")
+        if not name:
+            continue
+
+        for matches, kind, min_extent_m, weight in LANDMARK_CATEGORIES:
+            if not matches(tags):
+                continue
+
+            if element.get("type") == "node":
+                lat, lon = element["lat"], element["lon"]
+                extent_m = 0.0
+            else:
+                points = [node_positions[ref] for ref in element.get("nodes", []) if ref in node_positions]
+                if not points:
+                    break
+                lats = [point[0] for point in points]
+                lons = [point[1] for point in points]
+                lat = sum(lats) / len(lats)
+                lon = sum(lons) / len(lons)
+                extent_m = haversine_km(min(lats), min(lons), max(lats), max(lons)) * 1000
+
+            if extent_m < min_extent_m:
+                break
+
+            key = (name, kind)
+            if key not in candidates or extent_m > candidates[key]["extentM"]:
+                candidates[key] = {
+                    "name": name,
+                    "kind": kind,
+                    "lat": lat,
+                    "lon": lon,
+                    "extentM": extent_m,
+                    "weight": weight,
+                }
+            break
+
+    return list(candidates.values())
+
+
+def name_zones(zones, candidates):
+    claimed_names = Counter()
+
+    for zone in zones:
+        best = None
+        for candidate in candidates:
+            distance_km = haversine_km(zone["lat"], zone["lon"], candidate["lat"], candidate["lon"])
+            if distance_km > LANDMARK_MAX_KM:
+                continue
+            score = distance_km * candidate["weight"] - min(candidate["extentM"], 2000) / 6000
+            if best is None or score < best["score"]:
+                best = {**candidate, "score": score, "distanceKm": distance_km}
+
+        if best is None:
+            zone["name"] = f"Zone {zone['id']}"
+            continue
+
+        claimed_names[best["name"]] += 1
+        label = best["name"]
+        if claimed_names[best["name"]] > 1:
+            direction = bearing_label(best["lat"], best["lon"], zone["lat"], zone["lon"])
+            label = f"{best['name']} ({direction})"
+
+        zone["name"] = f"{label} area"
 
 
 def build_zones(grid):
@@ -327,6 +437,9 @@ def main():
 
     elements = json.loads(osm["data"])["elements"]
     relief, parks = build_amenities(elements)
+
+    landmark_candidates = build_landmark_candidates(elements)
+    name_zones(zones, landmark_candidates)
 
     ranges = {name: layer_range(values) for name, values in grid["layers"].items()}
 

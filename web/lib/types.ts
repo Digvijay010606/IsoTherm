@@ -11,6 +11,7 @@ export type TilesFile = {
 
 export type Zone = {
   id: string;
+  name: string;
   lat: number;
   lon: number;
   peakMax: number;
