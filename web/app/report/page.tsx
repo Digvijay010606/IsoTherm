@@ -43,9 +43,11 @@ export default function ReportPage() {
                   <SectionLabel>Condition</SectionLabel>
                   <div className="mt-1.5 text-[13px] font-medium text-ink">{category.label}</div>
                 </div>
-                <div className="p-3.5">
+                <div className="min-w-0 p-3.5">
                   <SectionLabel>Zone</SectionLabel>
-                  <div className="mt-1.5 text-[13px] font-medium text-ink">{zoneLabel(zone)}</div>
+                  <div className="mt-1.5 truncate text-[13px] font-medium text-ink" title={zoneLabel(zone)}>
+                    {zoneLabel(zone)}
+                  </div>
                 </div>
                 <div className="p-3.5">
                   <SectionLabel>Logged</SectionLabel>

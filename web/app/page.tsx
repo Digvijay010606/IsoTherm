@@ -14,6 +14,7 @@ import {
   nearestRelief,
   nearestZone,
   reliefLabel,
+  zoneCode,
   zoneLabel,
 } from "@/lib/realData";
 import { footprintPercent, toLatLon, toPercent } from "@/lib/projection";
@@ -189,11 +190,12 @@ export default function MapPage() {
 
               {marker && footprint ? (
                 <div
-                  className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap rounded-full border border-line bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
+                  className="pointer-events-none absolute max-w-[220px] -translate-x-1/2 truncate rounded-full border border-line bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
                   style={{
                     left: `${marker.xPercent}%`,
                     top: `calc(${marker.yPercent}% - ${footprint.heightPercent / 2}% - 26px)`,
                   }}
+                  title={zoneLabel(zone)}
                 >
                   {zoneLabel(zone)}
                 </div>
@@ -235,9 +237,9 @@ export default function MapPage() {
         <aside className="shrink-0 space-y-3 overflow-y-auto border-t border-line-soft p-3 lg:w-[330px] lg:border-t-0 lg:border-l">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <div className="text-[16px] font-semibold text-ink">{zoneLabel(zone)}</div>
+              <div className="truncate text-[16px] font-semibold text-ink">{zoneLabel(zone)}</div>
               <div className="mt-0.5 font-mono text-[10.5px] text-ink-4">
-                {zone.lat.toFixed(4)}, {zone.lon.toFixed(4)}
+                {zoneCode(zone)} · {zone.lat.toFixed(4)}, {zone.lon.toFixed(4)}
               </div>
             </div>
             <span className={`shrink-0 rounded-lg border px-2 py-1 text-[9px] font-semibold tracking-[0.08em] ${bandTone}`}>

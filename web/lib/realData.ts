@@ -18,6 +18,10 @@ export const PERIOD_END = metaFile.period.end;
 export const TILE_COUNT = metaFile.tileCount;
 
 export function zoneLabel(zone: Zone) {
+  return zone.name;
+}
+
+export function zoneCode(zone: Zone) {
   return `Zone ${zone.id}`;
 }
 
