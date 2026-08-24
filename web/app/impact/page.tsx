@@ -5,17 +5,18 @@ import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Pending } from "@/components/Pending";
 import { ZONES, coolingGapZones, nearestZone, zoneLabel } from "@/lib/realData";
-import { TEMPERATURE_METRICS } from "@/lib/heatLayers";
+import { RANKING_METRICS } from "@/lib/heatLayers";
 import type { HeatLayerId } from "@/lib/types";
 
 const METRIC_FIELD: Record<HeatLayerId, (zone: (typeof ZONES)[number]) => number> = {
   peak: (zone) => zone.peakMean,
   mean: (zone) => zone.meanTemp,
   low: (zone) => zone.meanTemp,
+  risk: (zone) => zone.riskScore ?? 0,
 };
 
 export default function ImpactPage() {
-  const [metric, setMetric] = useState<HeatLayerId>("peak");
+  const [metric, setMetric] = useState<HeatLayerId>("risk");
   const [highlightedZoneId, setHighlightedZoneId] = useState<string | null>(null);
 
   function focusZone(lat: number, lon: number) {
@@ -29,17 +30,25 @@ export default function ImpactPage() {
   }
 
   const ranked = [...ZONES].sort((a, b) => METRIC_FIELD[metric](b) - METRIC_FIELD[metric](a));
-  const hottest = ranked[0];
-  const coolest = ranked[ranked.length - 1];
-  const spread = METRIC_FIELD[metric](hottest) - METRIC_FIELD[metric](coolest);
+  const rangeTop = METRIC_FIELD[metric](ranked[0]);
+  const rangeBottom = METRIC_FIELD[metric](ranked[ranked.length - 1]);
+  const spread = rangeTop - rangeBottom;
+
+  const byTemperature = [...ZONES].sort((a, b) => b.peakMean - a.peakMean);
+  const hottest = byTemperature[0];
+  const coolest = byTemperature[byTemperature.length - 1];
+  const temperatureSpread = hottest.peakMean - coolest.peakMean;
+
   const gapZones = coolingGapZones();
+  const criticalCount = ZONES.filter((zone) => zone.riskCategory === "Critical").length;
+  const highestRisk = [...ZONES].sort((a, b) => (b.riskScore ?? 0) - (a.riskScore ?? 0))[0];
 
   const rail = (
     <div className="space-y-5">
       <div>
         <SectionLabel>Rank by</SectionLabel>
         <div className="mt-2 space-y-0.5">
-          {TEMPERATURE_METRICS.filter((option) => option.id !== "low").map((option) => {
+          {RANKING_METRICS.map((option) => {
             const active = metric === option.id;
             return (
               <button
@@ -97,7 +106,7 @@ export default function ImpactPage() {
             <div className="rounded-xl border border-line bg-surface p-4">
               <SectionLabel>Spread across city</SectionLabel>
               <div className="mt-2 font-mono text-[24px] font-medium tabular-nums text-heat-3">
-                {spread.toFixed(1)}°C
+                {temperatureSpread.toFixed(1)}°C
               </div>
               <div className="mt-1 text-[11.5px] text-ink-3">Hottest vs coolest zone</div>
             </div>
@@ -111,9 +120,11 @@ export default function ImpactPage() {
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-4">
-              <SectionLabel>Shade debt</SectionLabel>
-              <div className="mt-2 font-mono text-[24px] font-medium text-ink-4">—</div>
-              <div className="mt-1 text-[11.5px] text-ink-4">Needs wet-bulb data</div>
+              <SectionLabel>Critical zones</SectionLabel>
+              <div className="mt-2 font-mono text-[24px] font-medium tabular-nums text-heat-4">
+                {criticalCount}
+              </div>
+              <div className="mt-1 text-[11.5px] text-ink-3">Risk score above 75</div>
             </div>
           </div>
 
@@ -121,15 +132,18 @@ export default function ImpactPage() {
             <div className="rounded-xl border border-line bg-surface">
               <div className="flex items-baseline justify-between border-b border-line px-4 py-3">
                 <span className="text-[13.5px] font-semibold text-ink">
-                  Zones ranked by {metric === "peak" ? "peak" : "average"} temperature
+                  Zones ranked by{" "}
+                  {metric === "risk" ? "risk score" : metric === "peak" ? "peak temperature" : "average temperature"}
                 </span>
-                <span className="font-mono text-[10.5px] text-ink-4">°C</span>
+                <span className="font-mono text-[10.5px] text-ink-4">
+                  {metric === "risk" ? "0–100" : "°C"}
+                </span>
               </div>
 
               <div className="max-h-[440px] overflow-y-auto px-4 py-1">
                 {ranked.map((zone, index) => {
                   const value = METRIC_FIELD[metric](zone);
-                  const pct = spread > 0 ? ((value - METRIC_FIELD[metric](coolest)) / spread) * 100 : 0;
+                  const pct = spread > 0 ? ((value - rangeBottom) / spread) * 100 : 0;
                   return (
                     <div
                       key={zone.id}
@@ -190,46 +204,28 @@ export default function ImpactPage() {
           </div>
 
           <div className="mt-5">
-            <SectionLabel>Recommended focus</SectionLabel>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              <div className="rounded-xl border border-line bg-surface p-4">
-                <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-accent">
-                  Shift timing
-                </span>
-                <div className="mt-2.5 text-[13.5px] font-semibold leading-snug text-ink text-pretty">
-                  Move outdoor work earlier in {zoneLabel(hottest)}
-                </div>
-                <p className="mt-2 text-[11.5px] leading-relaxed text-ink-3 text-pretty">
-                  The hottest measured zone, peaking at {hottest.peakMax.toFixed(1)}°C. Becomes a specific
-                  start-time once peak-hour data lands.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-line bg-surface p-4">
-                <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-heat-2">
-                  Cooling access
-                </span>
-                <div className="mt-2.5 text-[13.5px] font-semibold leading-snug text-ink text-pretty">
-                  Close the gap in {gapZones.length} zones
-                </div>
-                <p className="mt-2 text-[11.5px] leading-relaxed text-ink-3 text-pretty">
-                  {gapZones.length} of {ZONES.length} zones sit over 800 m from cooling, the furthest being{" "}
-                  {zoneLabel(gapZones[0].zone)} at {gapZones[0].km.toFixed(2)} km.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-line bg-surface p-4">
-                <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-heat-1">
-                  Community signal
-                </span>
-                <div className="mt-2.5 text-[13.5px] font-semibold leading-snug text-ink text-pretty">
-                  Prioritise by resident reports
-                </div>
-                <p className="mt-2 text-[11.5px] leading-relaxed text-ink-3 text-pretty">
-                  Residents see hazards the temperature grid cannot — missing shade, broken taps, shut centres.
-                </p>
-              </div>
+            <div className="flex items-baseline justify-between">
+              <SectionLabel>Recommended actions for {zoneLabel(highestRisk)}</SectionLabel>
+              <span className="text-[10.5px] text-ink-4">
+                highest risk score &middot; {highestRisk.riskScore?.toFixed(1)}
+              </span>
             </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              {highestRisk.topDrivers.map((entry) => (
+                <div key={entry.driver} className="rounded-xl border border-line bg-surface p-4">
+                  <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-accent">
+                    {entry.driver}
+                  </span>
+                  <p className="mt-2.5 text-[12px] leading-relaxed text-ink-2 text-pretty">
+                    {entry.recommendation}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[10.5px] leading-relaxed text-ink-5">
+              Risk scores and recommendations come from the IsoTherm risk engine. Weights are transparent
+              prototype values, not medically validated thresholds.
+            </p>
           </div>
         </div>
       </div>

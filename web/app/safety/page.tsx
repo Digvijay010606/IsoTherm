@@ -14,6 +14,15 @@ export default function SafetyPage() {
   const relief = nearestRelief(zone.lat, zone.lon, 4);
   const coolest = ZONES[ZONES.length - 1];
 
+  const riskTone =
+    zone.riskCategory === "Critical"
+      ? "text-danger-ink"
+      : zone.riskCategory === "High"
+        ? "text-heat-3"
+        : zone.riskCategory === "Moderate"
+          ? "text-heat-2"
+          : "text-heat-1";
+
   const rail = (
     <div className="space-y-5">
       <div>
@@ -74,8 +83,26 @@ export default function SafetyPage() {
                 </span>
               </div>
 
-              <div className="mt-3">
-                <Pending reason="Risk needs wet-bulb, heat index and humidity from FortyGuard's env_params endpoint. Temperature alone cannot tell you if it is safe to work." />
+              <div className="mt-3 flex items-baseline gap-3">
+                <span className={`font-mono text-[40px] font-medium leading-none tabular-nums ${riskTone}`}>
+                  {zone.riskScore?.toFixed(1) ?? "—"}
+                </span>
+                <div>
+                  <div className={`text-[15px] font-semibold ${riskTone}`}>{zone.riskCategory}</div>
+                  <div className="text-[11px] text-ink-4">out of 100 &middot; confidence {zone.dataConfidence}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2.5 border-t border-line pt-4">
+                <SectionLabel>What drives it here</SectionLabel>
+                {zone.topDrivers.map((entry) => (
+                  <div key={entry.driver}>
+                    <div className="text-[12.5px] font-medium text-ink-2">{entry.driver}</div>
+                    <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-4 text-pretty">
+                      {entry.recommendation}
+                    </p>
+                  </div>
+                ))}
               </div>
 
               <div className="mt-5 grid grid-cols-3 gap-4 border-t border-line pt-4">
@@ -109,7 +136,7 @@ export default function SafetyPage() {
                   </span>
                 </div>
                 <div className="mt-3 font-mono text-[15px] text-ink-4">—</div>
-                <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-4">Needs risk level first</p>
+                <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-4">Needs wet-bulb from env_params</p>
               </div>
 
               <div className="rounded-xl border border-line bg-surface p-4">
@@ -118,7 +145,7 @@ export default function SafetyPage() {
                   <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Hydration</span>
                 </div>
                 <div className="mt-3 font-mono text-[15px] text-ink-4">—</div>
-                <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-4">Needs risk level first</p>
+                <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-4">Needs wet-bulb from env_params</p>
               </div>
 
               <div className="col-span-2 rounded-xl border border-line bg-surface p-4">
@@ -147,8 +174,10 @@ export default function SafetyPage() {
             <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-dashed border-line px-3.5 py-3">
               <InfoIcon size={14} className="mt-0.5 shrink-0 text-ink-4" />
               <p className="text-[11.5px] leading-relaxed text-ink-3 text-pretty">
-                General heat-safety guidance, not medical advice. If someone collapses, stops sweating, or cannot
-                be roused, call emergency services immediately.
+                The risk score rates an area&rsquo;s heat vulnerability from temperature and surroundings. It is a
+                transparent prototype measure, not a medically validated threshold, and it does not tell you whether
+                conditions are safe right now. General guidance only, not medical advice. If someone collapses, stops
+                sweating, or cannot be roused, call emergency services immediately.
               </p>
             </div>
           </div>
