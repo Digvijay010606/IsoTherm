@@ -1,4 +1,4 @@
-export type HeatLayerId = "peak" | "mean" | "low";
+export type HeatLayerId = "peak" | "mean" | "low" | "risk";
 
 export type TilesFile = {
   bounds: [number, number, number, number];
@@ -7,6 +7,11 @@ export type TilesFile = {
   tileMeters: number;
   ranges: Record<HeatLayerId, [number, number]>;
   layers: Record<HeatLayerId, (number | null)[][]>;
+};
+
+export type RiskDriver = {
+  driver: string;
+  recommendation: string | null;
 };
 
 export type Zone = {
@@ -19,6 +24,10 @@ export type Zone = {
   meanTemp: number;
   rank: number;
   tiles: number;
+  riskScore: number | null;
+  riskCategory: string | null;
+  dataConfidence: string | null;
+  topDrivers: RiskDriver[];
 };
 
 export type ReliefKind = "water" | "shade" | "cooling" | "medical" | "facility";

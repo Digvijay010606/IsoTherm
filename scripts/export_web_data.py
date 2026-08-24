@@ -6,6 +6,7 @@ from collections import Counter
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATABASE_PATH = os.path.join(REPO_ROOT, "data", "heat_risk.db")
+RISK_SCORES_PATH = os.path.join(REPO_ROOT, "data", "tile_risk_scores.json")
 OUTPUT_DIR = os.path.join(REPO_ROOT, "web", "public", "data")
 
 TILE_METERS = 100
@@ -67,7 +68,7 @@ def meters_per_degree_lon(latitude):
     return EARTH_METERS_PER_DEGREE * math.cos(math.radians(latitude))
 
 
-def build_grid(features):
+def build_grid(features, risk_by_tile_id):
     centroids = [tile_centroid(feature) for feature in features]
     lons = [point[0] for point in centroids]
     lats = [point[1] for point in centroids]
@@ -88,9 +89,12 @@ def build_grid(features):
     peak = [None] * (cols * rows)
     mean = [None] * (cols * rows)
     low = [None] * (cols * rows)
+    risk = [None] * (cols * rows)
+    index_to_tile_id = [None] * (cols * rows)
 
     placed = 0
     collisions = 0
+    risk_matched = 0
 
     for feature, (lon, lat) in zip(features, centroids):
         col = int(round((lon - min_lon) / lon_step))
@@ -104,10 +108,17 @@ def build_grid(features):
             continue
 
         properties = feature["properties"]
+        tile_id = properties["tile_id"]
         peak[index] = round(properties["max_temperature"], 1)
         mean[index] = round(properties["average_temperature"], 1)
         low[index] = round(properties["min_temperature"], 1)
+        index_to_tile_id[index] = tile_id
         placed += 1
+
+        risk_record = risk_by_tile_id.get(tile_id)
+        if risk_record is not None:
+            risk[index] = round(risk_record["risk_score"], 1)
+            risk_matched += 1
 
     grid = {
         "cols": cols,
@@ -119,10 +130,10 @@ def build_grid(features):
             round(max_lon, 6),
             round(max_lat, 6),
         ],
-        "layers": {"peak": peak, "mean": mean, "low": low},
+        "layers": {"peak": peak, "mean": mean, "low": low, "risk": risk},
     }
 
-    return grid, placed, collisions
+    return grid, placed, collisions, risk_matched, index_to_tile_id
 
 
 def fill_interior_holes(values, cols, rows):
@@ -253,11 +264,46 @@ def name_zones(zones, candidates):
         zone["name"] = f"{label} area"
 
 
-def build_zones(grid):
+def majority(values):
+    if not values:
+        return None
+    return Counter(values).most_common(1)[0][0]
+
+
+def driver_recommendation_map(records):
+    mapping = {}
+    for record in records:
+        drivers = record["top_risk_drivers"].split(" | ")
+        recommendations = record["recommendations"].split(" | ")
+        for driver_label, recommendation in zip(drivers, recommendations):
+            mapping.setdefault(driver_label, recommendation)
+    return mapping
+
+
+def summarize_zone_risk(real_tile_ids, risks, risk_by_tile_id):
+    records = [risk_by_tile_id[tile_id] for tile_id in real_tile_ids if tile_id in risk_by_tile_id]
+    recommendation_by_driver = driver_recommendation_map(records)
+
+    driver_counts = Counter(record["top_risk_driver"] for record in records)
+    top_drivers = [
+        {"driver": driver_label, "recommendation": recommendation_by_driver.get(driver_label)}
+        for driver_label, _count in driver_counts.most_common(3)
+    ]
+
+    return {
+        "riskScore": round(sum(risks) / len(risks), 1) if risks else None,
+        "riskCategory": majority([record["risk_category"] for record in records]),
+        "dataConfidence": majority([record["data_confidence_label"] for record in records]),
+        "topDrivers": top_drivers,
+    }
+
+
+def build_zones(grid, index_to_tile_id, risk_by_tile_id):
     cols = grid["cols"]
     rows = grid["rows"]
     peak = grid["layers"]["peak"]
     mean = grid["layers"]["mean"]
+    risk = grid["layers"]["risk"]
     min_lon, min_lat, max_lon, max_lat = grid["bounds"]
 
     lon_step = (max_lon - min_lon) / (cols - 1)
@@ -272,6 +318,8 @@ def build_zones(grid):
         for zone_col in range(zone_cols):
             peaks = []
             means = []
+            risks = []
+            real_tile_ids = []
 
             for row in range(zone_row * ZONE_TILES, min((zone_row + 1) * ZONE_TILES, rows)):
                 for col in range(zone_col * ZONE_TILES, min((zone_col + 1) * ZONE_TILES, cols)):
@@ -279,6 +327,10 @@ def build_zones(grid):
                     if peak[index] is not None:
                         peaks.append(peak[index])
                         means.append(mean[index])
+                    if risk[index] is not None:
+                        risks.append(risk[index])
+                    if index_to_tile_id[index] is not None:
+                        real_tile_ids.append(index_to_tile_id[index])
 
             if len(peaks) < MIN_ZONE_TILES:
                 continue
@@ -286,17 +338,18 @@ def build_zones(grid):
             centre_col = min(zone_col * ZONE_TILES + ZONE_TILES / 2.0, cols - 1)
             centre_row = min(zone_row * ZONE_TILES + ZONE_TILES / 2.0, rows - 1)
 
-            zones.append(
-                {
-                    "id": f"{ZONE_COLUMN_LETTERS[zone_col]}-{zone_row + 1}",
-                    "lon": round(min_lon + centre_col * lon_step, 6),
-                    "lat": round(min_lat + centre_row * lat_step, 6),
-                    "tiles": len(peaks),
-                    "peakMax": round(max(peaks), 1),
-                    "peakMean": round(sum(peaks) / len(peaks), 1),
-                    "meanTemp": round(sum(means) / len(means), 1),
-                }
-            )
+            zone = {
+                "id": f"{ZONE_COLUMN_LETTERS[zone_col]}-{zone_row + 1}",
+                "lon": round(min_lon + centre_col * lon_step, 6),
+                "lat": round(min_lat + centre_row * lat_step, 6),
+                "tiles": len(peaks),
+                "peakMax": round(max(peaks), 1),
+                "peakMean": round(sum(peaks) / len(peaks), 1),
+                "meanTemp": round(sum(means) / len(means), 1),
+            }
+
+            zone.update(summarize_zone_risk(real_tile_ids, risks, risk_by_tile_id))
+            zones.append(zone)
 
     zones.sort(key=lambda zone: (-zone["peakMean"], zone["id"]))
     for position, zone in enumerate(zones):
@@ -467,7 +520,17 @@ def main():
             "download heat_risk.db and place it in data/ before running this script"
         )
 
+    if not os.path.exists(RISK_SCORES_PATH):
+        raise SystemExit(
+            f"risk scores not found at {RISK_SCORES_PATH}\n"
+            "run notebooks/IsoTherm.ipynb (Digvijay and Kanak's risk engine) to produce "
+            "tile_risk_scores.json, then place it in data/ before running this script"
+        )
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    with open(RISK_SCORES_PATH, "r", encoding="utf-8") as handle:
+        risk_by_tile_id = {record["tile_id"]: record for record in json.load(handle)}
 
     connection = sqlite3.connect(DATABASE_PATH)
     cursor = connection.cursor()
@@ -483,13 +546,13 @@ def main():
     payload = json.loads(fortyguard["data"])
     features = payload["map_data"]["features"]
 
-    grid, placed, collisions = build_grid(features)
+    grid, placed, collisions, risk_matched, index_to_tile_id = build_grid(features, risk_by_tile_id)
 
     holes_filled = 0
     for values in grid["layers"].values():
         holes_filled = fill_interior_holes(values, grid["cols"], grid["rows"])
 
-    zones = build_zones(grid)
+    zones = build_zones(grid, index_to_tile_id, risk_by_tile_id)
 
     elements = json.loads(osm["data"])["elements"]
     relief, parks = build_amenities(elements)
@@ -574,6 +637,7 @@ def main():
 
     print(f"grid          {grid['cols']} x {grid['rows']}")
     print(f"tiles placed  {placed} of {len(features)} (collisions {collisions})")
+    print(f"risk matched  {risk_matched} of {placed} tiles")
     print(f"holes filled  {holes_filled} interior cells per layer")
     print(f"zones         {len(zones)}")
     print(f"relief        {len(relief)}")
@@ -581,6 +645,7 @@ def main():
     print(f"places        {len(places)}")
     print(f"peak range    {ranges['peak'][0]} to {ranges['peak'][1]} C")
     print(f"mean range    {ranges['mean'][0]} to {ranges['mean'][1]} C")
+    print(f"risk range    {ranges['risk'][0]} to {ranges['risk'][1]}")
     print()
     print(f"tiles.json      {tiles_bytes / 1024:8.1f} KB")
     print(f"zones.json      {zones_bytes / 1024:8.1f} KB")

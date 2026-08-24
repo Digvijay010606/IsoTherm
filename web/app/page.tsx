@@ -23,7 +23,7 @@ import type { HeatLayerId, ReliefKind, TilesFile } from "@/lib/types";
 const RAMP_HEX = ["#35617f", "#4e93a0", "#e3b24a", "#dc7a3c", "#c2412e", "#7e1f1a"];
 
 export default function MapPage() {
-  const [layerId, setLayerId] = useState<string>("peak");
+  const [layerId, setLayerId] = useState<string>("risk");
   const [metric, setMetric] = useState<HeatLayerId>("peak");
   const [selectedZoneId, setSelectedZoneId] = useState(ZONES[0].id);
   const [tiles, setTiles] = useState<TilesFile | null>(null);
@@ -32,9 +32,11 @@ export default function MapPage() {
   );
 
   const activeLayer = HEAT_LAYERS.find((layer) => layer.id === layerId) ?? HEAT_LAYERS[0];
+  const showsRisk = activeLayer.dataKey === "risk";
+  const dataKey: HeatLayerId = showsRisk ? "risk" : metric;
   const zone = ZONES.find((item) => item.id === selectedZoneId) ?? ZONES[0];
   const relief = nearestRelief(zone.lat, zone.lon, 3);
-  const range = tiles?.ranges[metric];
+  const range = tiles?.ranges[dataKey];
   const marker = tiles ? toPercent(tiles, zone.lat, zone.lon) : null;
   const footprint = tiles ? footprintPercent(tiles, ZONE_TILES) : null;
 
@@ -87,7 +89,11 @@ export default function MapPage() {
                     {layer.label}
                   </span>
                   <span className="mt-0.5 block text-[10.5px] text-ink-4">
-                    {layer.status === "pending" ? "Pending data" : "14-day history"}
+                    {layer.status === "pending"
+                      ? "Pending data"
+                      : layer.dataKey === "risk"
+                        ? "Heat plus surroundings"
+                        : "14-day history"}
                   </span>
                 </span>
               </button>
@@ -96,7 +102,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      {activeLayer.status === "ready" ? (
+      {activeLayer.status === "ready" && !showsRisk ? (
         <div>
           <SectionLabel>Metric</SectionLabel>
           <div className="mt-2 space-y-0.5">
@@ -175,7 +181,7 @@ export default function MapPage() {
               onClick={handleMapClick}
               className="relative min-h-[320px] flex-1 cursor-pointer overflow-hidden rounded-2xl border border-line bg-app"
             >
-              <HeatCanvas layer={metric} onReady={setTiles} />
+              <HeatCanvas layer={dataKey} onReady={setTiles} />
 
               {tiles ? <MapMarkers tiles={tiles} visible={visibleKinds} /> : null}
 
@@ -207,7 +213,13 @@ export default function MapPage() {
               {range ? (
                 <div className="absolute bottom-3 left-3 w-[196px] rounded-xl border border-line bg-app/90 p-3 backdrop-blur">
                   <SectionLabel>
-                    {metric === "peak" ? "Peak temperature" : metric === "mean" ? "Average temperature" : "Overnight low"}
+                    {showsRisk
+                      ? "Heat risk score"
+                      : metric === "peak"
+                        ? "Peak temperature"
+                        : metric === "mean"
+                          ? "Average temperature"
+                          : "Overnight low"}
                   </SectionLabel>
                   <div className="mt-2 flex gap-0.5">
                     {RAMP_HEX.map((color) => (
@@ -215,8 +227,8 @@ export default function MapPage() {
                     ))}
                   </div>
                   <div className="mt-1.5 flex justify-between font-mono text-[10px] text-ink-3">
-                    <span>{range[0].toFixed(1)}°C</span>
-                    <span>{range[1].toFixed(1)}°C</span>
+                    <span>{range[0].toFixed(1)}{showsRisk ? "" : "°C"}</span>
+                    <span>{range[1].toFixed(1)}{showsRisk ? "" : "°C"}</span>
                   </div>
                 </div>
               ) : null}
@@ -263,10 +275,10 @@ export default function MapPage() {
 
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl border border-line bg-surface p-3">
-              <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Rank</div>
+              <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Risk score</div>
               <div className="mt-1.5 font-mono text-[18px] font-medium tabular-nums text-ink">
-                {zone.rank}
-                <span className="text-[11px] text-ink-4"> / {ZONES.length}</span>
+                {zone.riskScore?.toFixed(1) ?? "—"}
+                <span className="text-[11px] text-ink-4"> {zone.riskCategory}</span>
               </div>
             </div>
             <div className="rounded-xl border border-line bg-surface p-3">
@@ -277,12 +289,24 @@ export default function MapPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-line bg-surface p-3">
-            <SectionLabel>Hours above threshold</SectionLabel>
-            <div className="mt-2">
-              <Pending reason="Needs one more FortyGuard call with analytic_type set to exceedance." />
+          {zone.topDrivers.length > 0 ? (
+            <div className="rounded-xl border border-line bg-surface p-3">
+              <div className="flex items-baseline justify-between">
+                <SectionLabel>What drives the risk</SectionLabel>
+                <span className="text-[10px] text-ink-5">confidence {zone.dataConfidence}</span>
+              </div>
+              <div className="mt-2 space-y-2.5">
+                {zone.topDrivers.map((entry) => (
+                  <div key={entry.driver}>
+                    <div className="text-[12px] font-medium text-ink-2">{entry.driver}</div>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-ink-4 text-pretty">
+                      {entry.recommendation}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="rounded-xl border border-line bg-surface p-3">
             <SectionLabel>Nearest relief</SectionLabel>
