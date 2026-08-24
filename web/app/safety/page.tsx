@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Pending } from "@/components/Pending";
@@ -10,9 +10,21 @@ import { ZONES, nearestRelief, nearestZone, reliefLabel, zoneLabel } from "@/lib
 
 export default function SafetyPage() {
   const [zoneId, setZoneId] = useState(ZONES[0].id);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const zoneListRef = useRef<HTMLDivElement>(null);
   const zone = ZONES.find((item) => item.id === zoneId) ?? ZONES[0];
   const relief = nearestRelief(zone.lat, zone.lon, 4);
   const coolest = ZONES[ZONES.length - 1];
+
+  function focusZone(id: string) {
+    setZoneId(id);
+    contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    requestAnimationFrame(() => {
+      zoneListRef.current
+        ?.querySelector(`[data-zone-id="${id}"]`)
+        ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }
 
   const riskTone =
     zone.riskCategory === "Critical"
@@ -27,13 +39,14 @@ export default function SafetyPage() {
     <div className="space-y-5">
       <div>
         <SectionLabel>Select zone</SectionLabel>
-        <div className="mt-2 max-h-[320px] space-y-0.5 overflow-y-auto">
+        <div ref={zoneListRef} className="mt-2 max-h-[320px] space-y-0.5 overflow-y-auto">
           {ZONES.map((item) => {
             const active = item.id === zoneId;
             return (
               <button
                 key={item.id}
                 type="button"
+                data-zone-id={item.id}
                 onClick={() => setZoneId(item.id)}
                 className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
                   active ? "bg-surface-2" : "hover:bg-surface-2/60"
@@ -63,9 +76,9 @@ export default function SafetyPage() {
     <AppShell
       rail={rail}
       searchPlaceholder="Search your work area"
-      onPlaceSelect={(place) => setZoneId(nearestZone(place.lat, place.lon).id)}
+      onPlaceSelect={(place) => focusZone(nearestZone(place.lat, place.lon).id)}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={contentRef} className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-5xl px-4 py-5 lg:px-6">
           <h1 className="text-[21px] font-semibold tracking-tight text-ink text-balance">
             Worker safety companion

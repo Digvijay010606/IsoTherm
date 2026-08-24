@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Chip } from "@/components/Chip";
@@ -15,16 +15,24 @@ export default function ReportPage() {
   const [zoneId, setZoneId] = useState(ZONES[0].id);
   const [detail, setDetail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const whereRef = useRef<HTMLDivElement>(null);
 
   const zone = ZONES.find((item) => item.id === zoneId) ?? ZONES[0];
   const category = REPORT_CATEGORIES.find((item) => item.id === categoryId);
   const now = new Date();
   const timeLabel = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
+  function focusZone(id: string) {
+    setZoneId(id);
+    requestAnimationFrame(() => {
+      whereRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }
+
   return (
     <AppShell
       searchPlaceholder="Search where the problem is"
-      onPlaceSelect={(place) => setZoneId(nearestZone(place.lat, place.lon).id)}
+      onPlaceSelect={(place) => focusZone(nearestZone(place.lat, place.lon).id)}
     >
       <div className="flex min-h-0 flex-1 items-start justify-center overflow-y-auto p-4">
         <div className="w-full max-w-[620px] rounded-2xl border border-line bg-surface">
@@ -129,7 +137,7 @@ export default function ReportPage() {
                     </button>
                   </div>
 
-                  <div className="flex flex-col">
+                  <div ref={whereRef} className="flex flex-col">
                     <SectionLabel>Where</SectionLabel>
                     <div className="mt-2.5 overflow-hidden rounded-xl border border-line">
                       <ZoneThumb zone={zone} />
