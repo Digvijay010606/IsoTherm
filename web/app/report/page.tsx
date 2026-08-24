@@ -44,8 +44,7 @@ export default function ReportPage() {
                 </div>
                 <h1 className="mt-4 text-[20px] font-semibold tracking-tight text-ink">Report submitted</h1>
                 <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-ink-3 text-pretty">
-                  Recorded locally in this session. It reaches the shared public map once community reporting is
-                  connected to a database.
+                  Recorded for this demo. Submissions are not saved to a shared database.
                 </p>
               </div>
 
@@ -183,7 +182,7 @@ export default function ReportPage() {
                 </div>
 
                 <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-5">
-                  Submits locally for now. Connects to the shared public map once reporting is wired to a database.
+                  Submissions are recorded for this demo and are not saved to a shared database.
                 </p>
               </div>
             </>
