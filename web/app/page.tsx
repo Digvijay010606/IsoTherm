@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
-import { Pending } from "@/components/Pending";
 import { HeatCanvas } from "@/components/HeatCanvas";
 import { MapMarkers, MARKER_KINDS, MARKER_COUNTS } from "@/components/MapMarkers";
 import { HEAT_LAYERS, TEMPERATURE_METRICS } from "@/lib/heatLayers";
@@ -98,11 +97,7 @@ export default function MapPage() {
                     {layer.label}
                   </span>
                   <span className="mt-0.5 block text-[10.5px] text-ink-4">
-                    {layer.status === "pending"
-                      ? "Pending data"
-                      : layer.dataKey === "risk"
-                        ? "Heat plus surroundings"
-                        : "14-day history"}
+                    {layer.dataKey === "risk" ? "Heat plus surroundings" : "14-day history"}
                   </span>
                 </span>
               </button>
@@ -111,7 +106,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      {activeLayer.status === "ready" && !showsRisk ? (
+      {!showsRisk ? (
         <div>
           <SectionLabel>Metric</SectionLabel>
           <div className="mt-2 space-y-0.5">
@@ -166,7 +161,7 @@ export default function MapPage() {
           })}
         </div>
         <p className="mt-2 px-2.5 text-[10.5px] leading-relaxed text-ink-5">
-          From OpenStreetMap. Community reports appear here once reporting is connected.
+          From OpenStreetMap.
         </p>
       </div>
     </div>
@@ -179,101 +174,86 @@ export default function MapPage() {
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
         <section className="flex min-h-0 flex-col p-3 lg:flex-1">
-          {activeLayer.status === "pending" ? (
-            <div className="flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-line bg-surface p-8">
-              <div className="max-w-sm">
-                <Pending reason={activeLayer.pendingReason ?? ""} />
+          <div
+            onClick={handleMapClick}
+            className="relative min-h-[320px] flex-1 cursor-pointer overflow-hidden rounded-2xl border border-line bg-app"
+          >
+            <HeatCanvas layer={dataKey} onReady={setTiles} />
+
+            {tiles ? <MapMarkers tiles={tiles} visible={visibleKinds} /> : null}
+
+            {marker && footprint ? (
+              <div
+                className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-ink shadow-[0_0_0_4px_rgba(12,13,15,0.45)]"
+                style={{
+                  left: `${marker.xPercent}%`,
+                  top: `${marker.yPercent}%`,
+                  width: `${footprint.widthPercent}%`,
+                  height: `${footprint.heightPercent}%`,
+                }}
+              />
+            ) : null}
+
+            {marker && footprint ? (
+              <div
+                className="pointer-events-none absolute max-w-[220px] -translate-x-1/2 truncate rounded-full border border-line bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
+                style={{
+                  left: `${marker.xPercent}%`,
+                  top: `calc(${marker.yPercent}% - ${footprint.heightPercent / 2}% - 26px)`,
+                }}
+                title={zoneLabel(zone)}
+              >
+                {zoneLabel(zone)}
               </div>
-            </div>
-          ) : (
-            <div
-              onClick={handleMapClick}
-              className="relative min-h-[320px] flex-1 cursor-pointer overflow-hidden rounded-2xl border border-line bg-app"
-            >
-              <HeatCanvas layer={dataKey} onReady={setTiles} />
+            ) : null}
 
-              {tiles ? <MapMarkers tiles={tiles} visible={visibleKinds} /> : null}
-
-              {marker && footprint ? (
-                <div
-                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-ink shadow-[0_0_0_4px_rgba(12,13,15,0.45)]"
-                  style={{
-                    left: `${marker.xPercent}%`,
-                    top: `${marker.yPercent}%`,
-                    width: `${footprint.widthPercent}%`,
-                    height: `${footprint.heightPercent}%`,
-                  }}
+            {searchedPlace && searchPoint ? (
+              <>
+                <span
+                  className="pointer-events-none absolute z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_4px_rgba(79,195,184,0.25)]"
+                  style={{ left: `${searchPoint.xPercent}%`, top: `${searchPoint.yPercent}%` }}
                 />
-              ) : null}
-
-              {marker && footprint ? (
                 <div
-                  className="pointer-events-none absolute max-w-[220px] -translate-x-1/2 truncate rounded-full border border-line bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
+                  className="pointer-events-none absolute z-10 max-w-[220px] -translate-x-1/2 truncate rounded-full border border-accent/40 bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
                   style={{
-                    left: `${marker.xPercent}%`,
-                    top: `calc(${marker.yPercent}% - ${footprint.heightPercent / 2}% - 26px)`,
+                    left: `${searchPoint.xPercent}%`,
+                    top: `calc(${searchPoint.yPercent}% + 12px)`,
                   }}
-                  title={zoneLabel(zone)}
+                  title={searchedPlace.name}
                 >
-                  {zoneLabel(zone)}
+                  {searchedPlace.name}
                 </div>
-              ) : null}
+              </>
+            ) : null}
 
-              {searchedPlace && searchPoint ? (
-                <>
-                  <span
-                    className="pointer-events-none absolute z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_4px_rgba(79,195,184,0.25)]"
-                    style={{ left: `${searchPoint.xPercent}%`, top: `${searchPoint.yPercent}%` }}
-                  />
-                  <div
-                    className="pointer-events-none absolute z-10 max-w-[220px] -translate-x-1/2 truncate rounded-full border border-accent/40 bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
-                    style={{
-                      left: `${searchPoint.xPercent}%`,
-                      top: `calc(${searchPoint.yPercent}% + 12px)`,
-                    }}
-                    title={searchedPlace.name}
-                  >
-                    {searchedPlace.name}
-                  </div>
-                </>
-              ) : null}
-
-              {range ? (
-                <div className="absolute bottom-3 left-3 w-[196px] rounded-xl border border-line bg-app/90 p-3 backdrop-blur">
-                  <SectionLabel>
-                    {showsRisk
-                      ? "Heat risk score"
-                      : metric === "peak"
-                        ? "Peak temperature"
-                        : metric === "mean"
-                          ? "Average temperature"
-                          : "Overnight low"}
-                  </SectionLabel>
-                  <div className="mt-2 flex gap-0.5">
-                    {RAMP_HEX.map((color) => (
-                      <span key={color} className="h-2 flex-1 rounded-sm" style={{ backgroundColor: color }} />
-                    ))}
-                  </div>
-                  <div className="mt-1.5 flex justify-between font-mono text-[10px] text-ink-3">
-                    <span>{range[0].toFixed(1)}{showsRisk ? "" : "°C"}</span>
-                    <span>{range[1].toFixed(1)}{showsRisk ? "" : "°C"}</span>
-                  </div>
+            {range ? (
+              <div className="absolute bottom-3 left-3 w-[196px] rounded-xl border border-line bg-app/90 p-3 backdrop-blur">
+                <SectionLabel>
+                  {showsRisk
+                    ? "Heat risk score"
+                    : metric === "peak"
+                      ? "Peak temperature"
+                      : metric === "mean"
+                        ? "Average temperature"
+                        : "Overnight low"}
+                </SectionLabel>
+                <div className="mt-2 flex gap-0.5">
+                  {RAMP_HEX.map((color) => (
+                    <span key={color} className="h-2 flex-1 rounded-sm" style={{ backgroundColor: color }} />
+                  ))}
                 </div>
-              ) : null}
-
-              <div className="absolute right-3 bottom-3 flex items-center gap-2 rounded-full border border-line bg-app/90 px-3 py-1.5 backdrop-blur">
-                <span className="text-[10.5px] text-ink-4">FortyGuard Temperature API</span>
-                <span className="h-1 w-1 rounded-full bg-accent" />
-                <span className="font-mono text-[10.5px] text-ink-3">100 m</span>
+                <div className="mt-1.5 flex justify-between font-mono text-[10px] text-ink-3">
+                  <span>{range[0].toFixed(1)}{showsRisk ? "" : "°C"}</span>
+                  <span>{range[1].toFixed(1)}{showsRisk ? "" : "°C"}</span>
+                </div>
               </div>
-            </div>
-          )}
+            ) : null}
 
-          <div className="mt-3 flex shrink-0 items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5">
-            <SectionLabel>Hourly timeline</SectionLabel>
-            <span className="text-[11.5px] text-ink-4">
-              Needs an hourly heatmap call — the current data is a 14-day aggregate.
-            </span>
+            <div className="absolute right-3 bottom-3 flex items-center gap-2 rounded-full border border-line bg-app/90 px-3 py-1.5 backdrop-blur">
+              <span className="text-[10.5px] text-ink-4">FortyGuard Temperature API</span>
+              <span className="h-1 w-1 rounded-full bg-accent" />
+              <span className="font-mono text-[10.5px] text-ink-3">100 m</span>
+            </div>
           </div>
         </section>
 

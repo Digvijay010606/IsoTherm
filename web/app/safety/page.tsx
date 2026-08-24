@@ -3,8 +3,7 @@
 import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
-import { Pending } from "@/components/Pending";
-import { WarningIcon, DropIcon, ClockIcon, InfoIcon } from "@/components/icons";
+import { WarningIcon, InfoIcon } from "@/components/icons";
 import { WARNING_SIGNS } from "@/lib/copy";
 import { ZONES, nearestRelief, nearestZone, reliefLabel, zoneLabel } from "@/lib/realData";
 
@@ -87,84 +86,53 @@ export default function SafetyPage() {
             General heat-safety guidance for outdoor work in {zoneLabel(zone)}
           </p>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-[1.25fr_1fr]">
-            <div className="rounded-xl border border-line bg-surface p-5">
-              <div className="flex items-center gap-2">
-                <WarningIcon size={14} className="text-ink-4" />
-                <span className="text-[10px] font-semibold uppercase tracking-[0.11em] text-ink-4">
-                  Risk level
-                </span>
-              </div>
+          <div className="mt-4 rounded-xl border border-line bg-surface p-5">
+            <div className="flex items-center gap-2">
+              <WarningIcon size={14} className="text-ink-4" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.11em] text-ink-4">
+                Risk level
+              </span>
+            </div>
 
-              <div className="mt-3 flex items-baseline gap-3">
-                <span className={`font-mono text-[40px] font-medium leading-none tabular-nums ${riskTone}`}>
-                  {zone.riskScore?.toFixed(1) ?? "—"}
-                </span>
-                <div>
-                  <div className={`text-[15px] font-semibold ${riskTone}`}>{zone.riskCategory}</div>
-                  <div className="text-[11px] text-ink-4">out of 100 &middot; confidence {zone.dataConfidence}</div>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-2.5 border-t border-line pt-4">
-                <SectionLabel>What drives it here</SectionLabel>
-                {zone.topDrivers.map((entry) => (
-                  <div key={entry.driver}>
-                    <div className="text-[12.5px] font-medium text-ink-2">{entry.driver}</div>
-                    <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-4 text-pretty">
-                      {entry.recommendation}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 grid grid-cols-3 gap-4 border-t border-line pt-4">
-                <div>
-                  <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Peak</div>
-                  <div className="mt-1.5 font-mono text-[24px] font-medium tabular-nums text-ink">
-                    {zone.peakMax.toFixed(1)}°
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Average</div>
-                  <div className="mt-1.5 font-mono text-[24px] font-medium tabular-nums text-ink-2">
-                    {zone.meanTemp.toFixed(1)}°
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">vs coolest</div>
-                  <div className="mt-1.5 font-mono text-[24px] font-medium tabular-nums text-heat-3">
-                    +{(zone.peakMean - coolest.peakMean).toFixed(1)}°
-                  </div>
-                </div>
+            <div className="mt-3 flex items-baseline gap-3">
+              <span className={`font-mono text-[40px] font-medium leading-none tabular-nums ${riskTone}`}>
+                {zone.riskScore?.toFixed(1) ?? "—"}
+              </span>
+              <div>
+                <div className={`text-[15px] font-semibold ${riskTone}`}>{zone.riskCategory}</div>
+                <div className="text-[11px] text-ink-4">out of 100 &middot; confidence {zone.dataConfidence}</div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-line bg-surface p-4">
-                <div className="flex items-center gap-2">
-                  <ClockIcon size={14} className="text-accent" />
-                  <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">
-                    Work / rest
-                  </span>
+            <div className="mt-4 space-y-2.5 border-t border-line pt-4">
+              <SectionLabel>What drives it here</SectionLabel>
+              {zone.topDrivers.map((entry) => (
+                <div key={entry.driver}>
+                  <div className="text-[12.5px] font-medium text-ink-2">{entry.driver}</div>
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-4 text-pretty">
+                    {entry.recommendation}
+                  </p>
                 </div>
-                <div className="mt-3 font-mono text-[15px] text-ink-4">—</div>
-                <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-4">Needs wet-bulb from env_params</p>
-              </div>
+              ))}
+            </div>
 
-              <div className="rounded-xl border border-line bg-surface p-4">
-                <div className="flex items-center gap-2">
-                  <DropIcon size={14} className="text-accent" />
-                  <span className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Hydration</span>
+            <div className="mt-5 grid grid-cols-3 gap-4 border-t border-line pt-4">
+              <div>
+                <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Peak</div>
+                <div className="mt-1.5 font-mono text-[24px] font-medium tabular-nums text-ink">
+                  {zone.peakMax.toFixed(1)}°
                 </div>
-                <div className="mt-3 font-mono text-[15px] text-ink-4">—</div>
-                <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-4">Needs wet-bulb from env_params</p>
               </div>
-
-              <div className="col-span-2 rounded-xl border border-line bg-surface p-4">
-                <SectionLabel>Next hours</SectionLabel>
-                <div className="mt-2.5">
-                  <Pending reason="Forecast needs a same-day heatmap call. The current data is a 14-day aggregate." />
+              <div>
+                <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Average</div>
+                <div className="mt-1.5 font-mono text-[24px] font-medium tabular-nums text-ink-2">
+                  {zone.meanTemp.toFixed(1)}°
+                </div>
+              </div>
+              <div>
+                <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">vs coolest</div>
+                <div className="mt-1.5 font-mono text-[24px] font-medium tabular-nums text-heat-3">
+                  +{(zone.peakMean - coolest.peakMean).toFixed(1)}°
                 </div>
               </div>
             </div>

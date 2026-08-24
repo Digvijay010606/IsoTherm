@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
-import { Pending } from "@/components/Pending";
 import { ZONES, coolingGapZones, nearestZone, zoneLabel } from "@/lib/realData";
 import { RANKING_METRICS } from "@/lib/heatLayers";
 import type { HeatLayerId } from "@/lib/types";
@@ -191,15 +190,6 @@ export default function ImpactPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-line bg-surface p-4">
-                <div className="text-[13.5px] font-semibold text-ink">Community reports</div>
-                <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
-                  Repeat reports will weight this ranking once reporting is connected.
-                </p>
-                <div className="mt-3">
-                  <Pending reason="Needs the community-reports feature wired up." />
-                </div>
-              </div>
             </div>
           </div>
 
