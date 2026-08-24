@@ -3,73 +3,118 @@
 import { useEffect, useRef, useState } from "react";
 import { useJson } from "@/lib/useJson";
 import { searchPlaces } from "@/lib/search";
-import { SearchIcon } from "./icons";
+import { SearchIcon, CloseIcon } from "./icons";
 import type { Place, PlacesFile } from "@/lib/types";
 
 type SearchBoxProps = {
   onSelect: (place: Place) => void;
   placeholder?: string;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
 };
 
-export function SearchBox({ onSelect, placeholder = "Search a place or street" }: SearchBoxProps) {
-  const [engaged, setEngaged] = useState(false);
+export function SearchBox({
+  onSelect,
+  placeholder = "Search a place or street",
+  expanded,
+  onExpandedChange,
+}: SearchBoxProps) {
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
+  const [engaged, setEngaged] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const state = useJson<PlacesFile>(engaged ? "/data/places.json" : null);
   const places: Place[] = state.status === "ready" ? state.data.places : [];
   const results = searchPlaces(places, query);
+  const showResults = expanded && listOpen && query.trim().length >= 2;
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    if (expanded) inputRef.current?.focus();
+  }, [expanded]);
+
+  useEffect(() => {
+    if (!expanded) return;
+
+    function handlePointerDown(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
+        setListOpen(false);
+        onExpandedChange(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [expanded, onExpandedChange]);
+
+  function changeExpanded(next: boolean) {
+    if (next) setEngaged(true);
+    else setListOpen(false);
+    onExpandedChange(next);
+  }
 
   function selectPlace(place: Place) {
     setQuery(place.name);
-    setOpen(false);
+    setListOpen(false);
+    inputRef.current?.focus();
     onSelect(place);
   }
 
+  function clearQuery() {
+    setQuery("");
+    setListOpen(false);
+    inputRef.current?.focus();
+  }
+
   return (
-    <div ref={containerRef} className="relative w-full">
-      <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5">
-        <SearchIcon size={14} className="shrink-0 text-ink-4" />
+    <div ref={containerRef} className="relative flex items-center">
+      <button
+        type="button"
+        aria-label={expanded ? "Close search" : "Search a place"}
+        aria-expanded={expanded}
+        onClick={() => changeExpanded(!expanded)}
+        className="flex size-7 shrink-0 items-center justify-center rounded-full text-ink-4 transition-colors hover:bg-surface-2 hover:text-ink-2"
+      >
+        {expanded ? <CloseIcon size={14} /> : <SearchIcon size={14} />}
+      </button>
+
+      <div
+        className={`flex items-center overflow-hidden transition-[width,opacity] duration-200 ease-out ${
+          expanded
+            ? "w-[132px] opacity-100 sm:w-[176px] lg:w-[228px]"
+            : "pointer-events-none w-0 opacity-0"
+        }`}
+      >
         <input
+          ref={inputRef}
           value={query}
-          onFocus={() => {
-            setEngaged(true);
-            setOpen(true);
-          }}
           onChange={(event) => {
             setQuery(event.target.value);
-            setOpen(true);
+            setListOpen(true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            if (listOpen) setListOpen(false);
+            else changeExpanded(false);
           }}
           placeholder={placeholder}
-          className="w-full min-w-0 bg-transparent text-[12.5px] text-ink placeholder:text-ink-4 focus:outline-none"
+          tabIndex={expanded ? undefined : -1}
+          className="w-full min-w-0 bg-transparent pl-1 text-[12.5px] text-ink placeholder:text-ink-5 focus:outline-none"
         />
         {query ? (
           <button
             type="button"
-            onClick={() => {
-              setQuery("");
-              setOpen(false);
-            }}
-            className="shrink-0 text-[11px] text-ink-4 transition-colors hover:text-ink-2"
+            onClick={clearQuery}
+            className="shrink-0 px-2 text-[11px] text-ink-4 transition-colors hover:text-ink-2"
           >
             Clear
           </button>
         ) : null}
       </div>
 
-      {open && query.trim().length >= 2 ? (
-        <div className="absolute top-[calc(100%+6px)] left-0 z-20 max-h-[320px] w-full min-w-[260px] overflow-y-auto rounded-xl border border-line bg-surface shadow-lg">
+      {showResults ? (
+        <div className="absolute top-[calc(100%+12px)] right-0 z-20 max-h-[320px] w-[300px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-line bg-surface shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
           {state.status === "loading" ? (
             <div className="px-3 py-3 text-[12px] text-ink-4">Loading places…</div>
           ) : results.length === 0 ? (

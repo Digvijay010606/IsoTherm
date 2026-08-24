@@ -18,7 +18,7 @@ import {
   zoneLabel,
 } from "@/lib/realData";
 import { footprintPercent, toLatLon, toPercent } from "@/lib/projection";
-import type { HeatLayerId, ReliefKind, TilesFile } from "@/lib/types";
+import type { HeatLayerId, Place, ReliefKind, TilesFile } from "@/lib/types";
 
 const RAMP_HEX = ["#35617f", "#4e93a0", "#e3b24a", "#dc7a3c", "#c2412e", "#7e1f1a"];
 
@@ -26,6 +26,7 @@ export default function MapPage() {
   const [layerId, setLayerId] = useState<string>("risk");
   const [metric, setMetric] = useState<HeatLayerId>("peak");
   const [selectedZoneId, setSelectedZoneId] = useState(ZONES[0].id);
+  const [searchedPlace, setSearchedPlace] = useState<Place | null>(null);
   const [tiles, setTiles] = useState<TilesFile | null>(null);
   const [visibleKinds, setVisibleKinds] = useState<Set<ReliefKind>>(
     () => new Set<ReliefKind>(["cooling"]),
@@ -39,6 +40,8 @@ export default function MapPage() {
   const range = tiles?.ranges[dataKey];
   const marker = tiles ? toPercent(tiles, zone.lat, zone.lon) : null;
   const footprint = tiles ? footprintPercent(tiles, ZONE_TILES) : null;
+  const searchPoint =
+    tiles && searchedPlace ? toPercent(tiles, searchedPlace.lat, searchedPlace.lon) : null;
 
   const coolest = ZONES[ZONES.length - 1];
   const band = Math.ceil((zone.rank / ZONES.length) * 4);
@@ -61,6 +64,12 @@ export default function MapPage() {
     const yPercent = ((event.clientY - rect.top) / rect.height) * 100;
     const { lat, lon } = toLatLon(tiles, xPercent, yPercent);
     setSelectedZoneId(nearestZone(lat, lon).id);
+    setSearchedPlace(null);
+  }
+
+  function handlePlaceSelect(place: Place) {
+    setSelectedZoneId(nearestZone(place.lat, place.lon).id);
+    setSearchedPlace(place);
   }
 
   const rail = (
@@ -166,7 +175,7 @@ export default function MapPage() {
   return (
     <AppShell
       rail={rail}
-      onPlaceSelect={(place) => setSelectedZoneId(nearestZone(place.lat, place.lon).id)}
+      onPlaceSelect={handlePlaceSelect}
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
         <section className="flex min-h-0 flex-col p-3 lg:flex-1">
@@ -208,6 +217,25 @@ export default function MapPage() {
                 >
                   {zoneLabel(zone)}
                 </div>
+              ) : null}
+
+              {searchedPlace && searchPoint ? (
+                <>
+                  <span
+                    className="pointer-events-none absolute z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_4px_rgba(79,195,184,0.25)]"
+                    style={{ left: `${searchPoint.xPercent}%`, top: `${searchPoint.yPercent}%` }}
+                  />
+                  <div
+                    className="pointer-events-none absolute z-10 max-w-[220px] -translate-x-1/2 truncate rounded-full border border-accent/40 bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
+                    style={{
+                      left: `${searchPoint.xPercent}%`,
+                      top: `calc(${searchPoint.yPercent}% + 12px)`,
+                    }}
+                    title={searchedPlace.name}
+                  >
+                    {searchedPlace.name}
+                  </div>
+                </>
               ) : null}
 
               {range ? (

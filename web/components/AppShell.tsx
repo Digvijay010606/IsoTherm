@@ -1,11 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { NavCapsule } from "./NavCapsule";
+import { usePathname } from "next/navigation";
 import { SearchBox } from "./SearchBox";
-import { PinIcon } from "./icons";
+import { MapIcon, ChartIcon, ShieldIcon, ReportIcon, PinIcon } from "./icons";
 import { AREA } from "@/lib/realData";
 import type { Place } from "@/lib/types";
+
+const LINKS = [
+  { href: "/", label: "Map", icon: MapIcon },
+  { href: "/impact", label: "Impact", icon: ChartIcon },
+  { href: "/safety", label: "Safety", icon: ShieldIcon },
+  { href: "/report", label: "Report", icon: ReportIcon },
+];
 
 type AppShellProps = {
   rail?: React.ReactNode;
@@ -15,35 +23,65 @@ type AppShellProps = {
 };
 
 export function AppShell({ rail, onPlaceSelect, searchPlaceholder, children }: AppShellProps) {
+  const pathname = usePathname();
+  const [searchExpanded, setSearchExpanded] = useState(false);
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-ground">
-      <header className="flex shrink-0 flex-col items-center gap-2.5 border-b border-line-soft px-4 py-2.5 sm:grid sm:grid-cols-[1fr_auto_1fr] sm:gap-3">
-        <div className="flex items-center gap-3 justify-self-start">
-          <Link href="/" className="text-[15px] font-semibold tracking-tight text-ink">
-            Chhaya
+      <header className="relative z-30 flex shrink-0 justify-center px-4 pt-3 pb-2">
+        <div className="flex max-w-full items-center gap-1 rounded-full border border-line bg-surface/95 py-1 pr-1.5 pl-3 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur">
+          <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+            <span className="text-[14px] font-semibold tracking-tight text-ink">Chhaya</span>
+            <span
+              className={`items-center gap-1 rounded-full bg-surface-2 py-1 pr-2.5 pl-2 ${
+                searchExpanded ? "hidden lg:flex" : "hidden md:flex"
+              }`}
+            >
+              <PinIcon size={11} className="text-accent" />
+              <span className="text-[11px] leading-none text-ink-3">{AREA.name}</span>
+            </span>
           </Link>
-          <span className="hidden h-5 w-px bg-line md:block" />
-          <div className="hidden items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 md:flex">
-            <PinIcon size={13} className="text-accent" />
-            <span className="text-[12.5px] text-ink">{AREA.name}</span>
-          </div>
+
+          <span className="mx-1.5 h-4 w-px shrink-0 bg-line" />
+
+          <nav className="flex shrink-0 items-center gap-0.5">
+            {LINKS.map((link) => {
+              const active = pathname === link.href;
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex items-center gap-1.5 rounded-full px-2 py-1.5 transition-colors ${
+                    active ? "bg-surface-2" : "hover:bg-surface-2/60"
+                  }`}
+                >
+                  <Icon size={14} className={active ? "text-accent" : "text-ink-4"} />
+                  <span
+                    className={`text-[11.5px] leading-none whitespace-nowrap ${
+                      active ? "font-medium text-ink" : "text-ink-4"
+                    } ${searchExpanded ? "hidden lg:inline" : "hidden sm:inline"}`}
+                  >
+                    {link.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {onPlaceSelect ? (
+            <>
+              <span className="mx-1.5 h-4 w-px shrink-0 bg-line" />
+              <SearchBox
+                onSelect={onPlaceSelect}
+                placeholder={searchPlaceholder}
+                expanded={searchExpanded}
+                onExpandedChange={setSearchExpanded}
+              />
+            </>
+          ) : null}
         </div>
-
-        <div className="justify-self-center">
-          <NavCapsule />
-        </div>
-
-        {onPlaceSelect ? (
-          <>
-            <div className="hidden justify-self-end lg:block lg:w-[280px]">
-              <SearchBox onSelect={onPlaceSelect} placeholder={searchPlaceholder} />
-            </div>
-
-            <div className="w-full lg:hidden">
-              <SearchBox onSelect={onPlaceSelect} placeholder={searchPlaceholder} />
-            </div>
-          </>
-        ) : null}
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
