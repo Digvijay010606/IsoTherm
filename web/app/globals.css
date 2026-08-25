@@ -22,6 +22,10 @@
   --heat-4: #c2412e;
   --heat-5: #7e1f1a;
   --danger-ink: #f0857a;
+  --marker-water: #3f8fd0;
+  --marker-cooling: #b7e4ee;
+  --marker-shade: #f0b93f;
+  --marker-medical: #ef6f63;
 }
 
 @theme inline {

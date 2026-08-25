@@ -24,8 +24,38 @@ export function WarningIcon(props: IconProps) {
 
 export function DropIcon(props: IconProps) {
   return (
-    <svg width={props.size ?? 16} height={props.size ?? 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={props.className}>
-      <path d="M12 3s6 6.4 6 10.4A6 6 0 0 1 6 13.4C6 9.4 12 3 12 3z" />
+    <svg width={props.size ?? 16} height={props.size ?? 16} viewBox="0 0 24 24" fill="currentColor" className={props.className}>
+      <path d="M12 2.6c0 0 6.6 6.9 6.6 11.1a6.6 6.6 0 1 1-13.2 0C5.4 9.5 12 2.6 12 2.6z" />
+    </svg>
+  );
+}
+
+export function SnowIcon(props: IconProps) {
+  return (
+    <svg width={props.size ?? 16} height={props.size ?? 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className={props.className}>
+      <path d="M12 2.4v19.2" />
+      <path d="M3.7 7.2 20.3 16.8" />
+      <path d="M20.3 7.2 3.7 16.8" />
+      <path d="M9.2 4.4 12 7.2l2.8-2.8" />
+      <path d="M9.2 19.6 12 16.8l2.8 2.8" />
+    </svg>
+  );
+}
+
+export function UmbrellaIcon(props: IconProps) {
+  return (
+    <svg width={props.size ?? 16} height={props.size ?? 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" className={props.className}>
+      <path d="M2.6 12a9.4 9.4 0 0 1 18.8 0z" fill="currentColor" stroke="none" />
+      <path d="M12 12v7.4" />
+    </svg>
+  );
+}
+
+export function MedicalIcon(props: IconProps) {
+  return (
+    <svg width={props.size ?? 16} height={props.size ?? 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3.2} strokeLinecap="round" className={props.className}>
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
     </svg>
   );
 }

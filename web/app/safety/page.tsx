@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
+import { RecommendedActions } from "@/components/RecommendedActions";
 import { WarningIcon, InfoIcon } from "@/components/icons";
 import { WARNING_SIGNS } from "@/lib/copy";
 import { ZONES, nearestRelief, nearestZone, reliefLabel, zoneLabel } from "@/lib/realData";
@@ -109,9 +110,9 @@ export default function SafetyPage() {
               {zone.topDrivers.map((entry) => (
                 <div key={entry.driver}>
                   <div className="text-[12.5px] font-medium text-ink-2">{entry.driver}</div>
-                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-4 text-pretty">
-                    {entry.recommendation}
-                  </p>
+                  <div className="mt-1">
+                    <RecommendedActions text={entry.recommendation} />
+                  </div>
                 </div>
               ))}
             </div>
