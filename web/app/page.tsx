@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
+import { RecommendedActions } from "@/components/RecommendedActions";
 import { HeatCanvas } from "@/components/HeatCanvas";
 import { MapMarkers, MARKER_KINDS, MARKER_COUNTS } from "@/components/MapMarkers";
 import { HEAT_LAYERS, TEMPERATURE_METRICS } from "@/lib/heatLayers";
@@ -27,9 +28,7 @@ export default function MapPage() {
   const [selectedZoneId, setSelectedZoneId] = useState(ZONES[0].id);
   const [searchedPlace, setSearchedPlace] = useState<Place | null>(null);
   const [tiles, setTiles] = useState<TilesFile | null>(null);
-  const [visibleKinds, setVisibleKinds] = useState<Set<ReliefKind>>(
-    () => new Set<ReliefKind>(["cooling"]),
-  );
+  const [visibleKinds, setVisibleKinds] = useState<Set<ReliefKind>>(() => new Set<ReliefKind>());
 
   const activeLayer = HEAT_LAYERS.find((layer) => layer.id === layerId) ?? HEAT_LAYERS[0];
   const showsRisk = activeLayer.dataKey === "risk";
@@ -43,6 +42,14 @@ export default function MapPage() {
     tiles && searchedPlace ? toPercent(tiles, searchedPlace.lat, searchedPlace.lon) : null;
 
   const coolest = ZONES[ZONES.length - 1];
+  const riskTone =
+    zone.riskCategory === "Critical"
+      ? "text-danger-ink"
+      : zone.riskCategory === "High"
+        ? "text-heat-3"
+        : zone.riskCategory === "Moderate"
+          ? "text-heat-2"
+          : "text-heat-1";
   const band = Math.ceil((zone.rank / ZONES.length) * 4);
   const bandLabel = ["TOP 25% HOTTEST", "UPPER MIDDLE", "LOWER MIDDLE", "COOLEST 25%"][band - 1];
   const bandTone = ["bg-heat-4/15 border-heat-4/45 text-danger-ink", "bg-heat-3/15 border-heat-3/45 text-heat-3", "bg-heat-2/15 border-heat-2/45 text-heat-2", "bg-heat-1/15 border-heat-1/45 text-heat-1"][band - 1];
@@ -139,6 +146,7 @@ export default function MapPage() {
         <div className="mt-2 space-y-0.5">
           {MARKER_KINDS.map((kind) => {
             const on = visibleKinds.has(kind.id);
+            const Icon = kind.icon;
             return (
               <button
                 key={kind.id}
@@ -148,13 +156,17 @@ export default function MapPage() {
                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors hover:bg-surface-2/60"
               >
                 <span
-                  className="h-3.5 w-3.5 shrink-0 rounded border"
+                  className="flex size-[18px] shrink-0 items-center justify-center rounded-md border"
                   style={{
-                    backgroundColor: on ? kind.color : "transparent",
                     borderColor: on ? kind.color : "var(--line)",
+                    color: on ? kind.color : "var(--ink-5)",
                   }}
-                />
-                <span className="flex-1 text-[12.5px] text-ink-2">{kind.label}</span>
+                >
+                  <Icon size={11} />
+                </span>
+                <span className={`flex-1 text-[12.5px] ${on ? "text-ink" : "text-ink-3"}`}>
+                  {kind.label}
+                </span>
                 <span className="font-mono text-[10.5px] text-ink-4">{MARKER_COUNTS[kind.id] ?? 0}</span>
               </button>
             );
@@ -270,46 +282,54 @@ export default function MapPage() {
             </span>
           </div>
 
-          <div className="flex items-baseline gap-2.5">
-            <span className="font-mono text-[38px] font-medium leading-none tracking-tight tabular-nums text-ink">
-              {zone.peakMax.toFixed(1)}°C
-            </span>
-            <span className="text-[11.5px] leading-tight text-ink-3">
-              peak recorded
-              <br />
-              avg {zone.meanTemp.toFixed(1)}°C
-            </span>
-          </div>
+          <div className="rounded-xl border border-line bg-surface p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <SectionLabel>Risk score</SectionLabel>
+              <span className="text-[10px] text-ink-5">confidence {zone.dataConfidence}</span>
+            </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-line bg-surface p-3">
-              <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Risk score</div>
-              <div className="mt-1.5 font-mono text-[18px] font-medium tabular-nums text-ink">
+            <div className="mt-2.5 flex items-baseline gap-2.5">
+              <span className={`font-mono text-[36px] font-medium leading-none tracking-tight tabular-nums ${riskTone}`}>
                 {zone.riskScore?.toFixed(1) ?? "—"}
-                <span className="text-[11px] text-ink-4"> {zone.riskCategory}</span>
+              </span>
+              <div>
+                <div className={`text-[13px] font-semibold ${riskTone}`}>{zone.riskCategory}</div>
+                <div className="text-[10.5px] text-ink-4">out of 100</div>
               </div>
             </div>
-            <div className="rounded-xl border border-line bg-surface p-3">
-              <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">vs coolest</div>
-              <div className="mt-1.5 font-mono text-[18px] font-medium tabular-nums text-heat-3">
-                +{(zone.peakMean - coolest.peakMean).toFixed(1)}°C
+
+            <div className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-3.5">
+              <div>
+                <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Peak</div>
+                <div className="mt-1.5 font-mono text-[19px] font-medium tabular-nums text-ink">
+                  {zone.peakMax.toFixed(1)}°
+                </div>
+              </div>
+              <div>
+                <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">Average</div>
+                <div className="mt-1.5 font-mono text-[19px] font-medium tabular-nums text-ink-2">
+                  {zone.meanTemp.toFixed(1)}°
+                </div>
+              </div>
+              <div>
+                <div className="text-[9px] font-medium uppercase tracking-[0.1em] text-ink-4">vs coolest</div>
+                <div className="mt-1.5 font-mono text-[19px] font-medium tabular-nums text-heat-3">
+                  +{(zone.peakMean - coolest.peakMean).toFixed(1)}°
+                </div>
               </div>
             </div>
           </div>
 
           {zone.topDrivers.length > 0 ? (
             <div className="rounded-xl border border-line bg-surface p-3">
-              <div className="flex items-baseline justify-between">
-                <SectionLabel>What drives the risk</SectionLabel>
-                <span className="text-[10px] text-ink-5">confidence {zone.dataConfidence}</span>
-              </div>
+              <SectionLabel>What drives the risk</SectionLabel>
               <div className="mt-2 space-y-2.5">
                 {zone.topDrivers.map((entry) => (
                   <div key={entry.driver}>
                     <div className="text-[12px] font-medium text-ink-2">{entry.driver}</div>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-ink-4 text-pretty">
-                      {entry.recommendation}
-                    </p>
+                    <div className="mt-1">
+                      <RecommendedActions text={entry.recommendation} />
+                    </div>
                   </div>
                 ))}
               </div>

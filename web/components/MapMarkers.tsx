@@ -2,13 +2,21 @@
 
 import { RELIEF_POINTS, reliefLabel } from "@/lib/realData";
 import { toPercent } from "@/lib/projection";
+import { DropIcon, SnowIcon, UmbrellaIcon, MedicalIcon } from "./icons";
 import type { ReliefKind, TilesFile } from "@/lib/types";
 
-export const MARKER_KINDS: { id: ReliefKind; label: string; color: string }[] = [
-  { id: "water", label: "Water points", color: "var(--heat-1)" },
-  { id: "cooling", label: "Cooling locations", color: "var(--accent)" },
-  { id: "shade", label: "Shade shelters", color: "var(--heat-2)" },
-  { id: "medical", label: "Medical", color: "var(--danger-ink)" },
+type MarkerKind = {
+  id: ReliefKind;
+  label: string;
+  color: string;
+  icon: (props: { size?: number; className?: string }) => React.ReactElement;
+};
+
+export const MARKER_KINDS: MarkerKind[] = [
+  { id: "water", label: "Water points", color: "var(--marker-water)", icon: DropIcon },
+  { id: "cooling", label: "Cooling locations", color: "var(--marker-cooling)", icon: SnowIcon },
+  { id: "shade", label: "Shade shelters", color: "var(--marker-shade)", icon: UmbrellaIcon },
+  { id: "medical", label: "Medical", color: "var(--marker-medical)", icon: MedicalIcon },
 ];
 
 export const MARKER_COUNTS: Record<string, number> = RELIEF_POINTS.reduce(
@@ -25,26 +33,29 @@ type MapMarkersProps = {
 };
 
 export function MapMarkers({ tiles, visible }: MapMarkersProps) {
-  const colorFor = (kind: ReliefKind) =>
-    MARKER_KINDS.find((entry) => entry.id === kind)?.color ?? "var(--ink-3)";
-
   return (
     <>
       {RELIEF_POINTS.map((point, index) => {
         if (!visible.has(point.kind)) return null;
+        const kind = MARKER_KINDS.find((entry) => entry.id === point.kind);
+        if (!kind) return null;
         const { xPercent, yPercent } = toPercent(tiles, point.lat, point.lon);
         if (xPercent < 0 || xPercent > 100 || yPercent < 0 || yPercent > 100) return null;
+        const Icon = kind.icon;
         return (
           <span
             key={index}
             title={reliefLabel(point)}
-            className="pointer-events-none absolute h-[7px] w-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full ring-1 ring-black/40"
+            className="pointer-events-none absolute flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.55)] ring-1 ring-black/45"
             style={{
               left: `${xPercent}%`,
               top: `${yPercent}%`,
-              backgroundColor: colorFor(point.kind),
+              backgroundColor: kind.color,
+              color: "var(--app)",
             }}
-          />
+          >
+            <Icon size={10} />
+          </span>
         );
       })}
     </>

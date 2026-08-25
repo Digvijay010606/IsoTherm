@@ -11,7 +11,7 @@ import { ZONES, nearestZone, zoneLabel } from "@/lib/realData";
 import type { ReportCategoryId } from "@/lib/types";
 
 export default function ReportPage() {
-  const [categoryId, setCategoryId] = useState<ReportCategoryId | null>("no-shade");
+  const [categoryId, setCategoryId] = useState<ReportCategoryId | null>(null);
   const [zoneId, setZoneId] = useState(ZONES[0].id);
   const [detail, setDetail] = useState("");
   const [submitted, setSubmitted] = useState(false);

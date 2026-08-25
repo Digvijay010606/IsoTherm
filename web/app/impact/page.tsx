@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
+import { RecommendedActions } from "@/components/RecommendedActions";
 import { ZONES, coolingGapZones, nearestZone, zoneLabel } from "@/lib/realData";
 import { RANKING_METRICS } from "@/lib/heatLayers";
 import type { HeatLayerId } from "@/lib/types";
@@ -128,53 +129,83 @@ export default function ImpactPage() {
           </div>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-            <div className="rounded-xl border border-line bg-surface">
-              <div className="flex items-baseline justify-between border-b border-line px-4 py-3">
-                <span className="text-[13.5px] font-semibold text-ink">
-                  Zones ranked by{" "}
-                  {metric === "risk" ? "risk score" : metric === "peak" ? "peak temperature" : "average temperature"}
-                </span>
-                <span className="font-mono text-[10.5px] text-ink-4">
-                  {metric === "risk" ? "0–100" : "°C"}
-                </span>
-              </div>
+            <div className="overflow-hidden rounded-xl border border-line bg-surface">
+              <div className="max-h-[476px] overflow-y-auto">
+                <div className="sticky top-0 z-10 flex items-baseline justify-between border-b border-line bg-surface px-4 py-3">
+                  <span className="text-[13.5px] font-semibold text-ink">
+                    Zones ranked by{" "}
+                    {metric === "risk" ? "risk score" : metric === "peak" ? "peak temperature" : "average temperature"}
+                  </span>
+                  <span className="font-mono text-[10.5px] text-ink-5">
+                    {metric === "risk" ? "0–100" : "°C"}
+                  </span>
+                </div>
 
-              <div className="max-h-[440px] overflow-y-auto px-4 py-1">
-                {ranked.map((zone, index) => {
-                  const value = METRIC_FIELD[metric](zone);
-                  const pct = spread > 0 ? ((value - rangeBottom) / spread) * 100 : 0;
-                  return (
-                    <div
-                      key={zone.id}
-                      id={`zone-row-${zone.id}`}
-                      className={`grid grid-cols-[26px_1fr_120px_58px] items-center gap-2.5 border-b border-line-soft py-2.5 last:border-none ${
-                        zone.id === highlightedZoneId
-                          ? "-mx-2 rounded-lg bg-accent/10 px-2 ring-1 ring-accent/40"
-                          : ""
-                      }`}
-                    >
-                      <span className="font-mono text-[10.5px] text-ink-5">{index + 1}</span>
-                      <span className="truncate text-[12.5px] text-ink-2">{zoneLabel(zone)}</span>
-                      <span className="h-1.5 overflow-hidden rounded-full bg-line-soft">
-                        <span
-                          className="block h-full rounded-full"
-                          style={{
-                            width: `${Math.max(4, pct)}%`,
-                            backgroundColor:
-                              pct > 75 ? "var(--heat-4)" : pct > 45 ? "var(--heat-3)" : "var(--heat-2)",
-                          }}
-                        />
-                      </span>
-                      <span className="text-right font-mono text-[12px] tabular-nums text-ink">
-                        {value.toFixed(1)}
-                      </span>
-                    </div>
-                  );
-                })}
+                <div className="px-4 py-1">
+                  {ranked.map((zone, index) => {
+                    const value = METRIC_FIELD[metric](zone);
+                    const pct = spread > 0 ? ((value - rangeBottom) / spread) * 100 : 0;
+                    return (
+                      <div
+                        key={zone.id}
+                        id={`zone-row-${zone.id}`}
+                        className={`grid grid-cols-[22px_1fr_52px] items-center gap-2.5 border-b border-line-soft py-2.5 last:border-none sm:grid-cols-[26px_1fr_90px_58px] lg:grid-cols-[26px_1fr_120px_58px] ${
+                          zone.id === highlightedZoneId
+                            ? "-mx-2 rounded-lg bg-accent/10 px-2 ring-1 ring-accent/40"
+                            : ""
+                        }`}
+                      >
+                        <span className="font-mono text-[10.5px] text-ink-5">{index + 1}</span>
+                        <span className="truncate text-[12.5px] text-ink-2">{zoneLabel(zone)}</span>
+                        <span className="hidden h-1.5 overflow-hidden rounded-full bg-line-soft sm:block">
+                          <span
+                            className="block h-full rounded-full"
+                            style={{
+                              width: `${Math.max(4, pct)}%`,
+                              backgroundColor:
+                                pct > 75 ? "var(--heat-4)" : pct > 45 ? "var(--heat-3)" : "var(--heat-2)",
+                            }}
+                          />
+                        </span>
+                        <span className="text-right font-mono text-[12px] tabular-nums text-ink">
+                          {value.toFixed(1)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
             <div className="space-y-4">
+              <div className="rounded-xl border border-line bg-surface p-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <div className="text-[13.5px] font-semibold text-ink">Recommended actions</div>
+                  <span className="shrink-0 font-mono text-[11px] text-heat-3">
+                    {highestRisk.riskScore?.toFixed(1)}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
+                  Highest risk zone &mdash; {zoneLabel(highestRisk)}
+                </p>
+                <div className="mt-3 space-y-2">
+                  {highestRisk.topDrivers.map((entry) => (
+                    <div key={entry.driver} className="rounded-lg border border-line bg-app p-3">
+                      <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-accent">
+                        {entry.driver}
+                      </span>
+                      <div className="mt-2">
+                        <RecommendedActions text={entry.recommendation} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-[10px] leading-relaxed text-ink-5">
+                  From the IsoTherm risk engine. Weights are transparent prototype values, not medically
+                  validated thresholds.
+                </p>
+              </div>
+
               <div className="rounded-xl border border-line bg-surface p-4">
                 <div className="text-[13.5px] font-semibold text-ink">Cooling coverage gap</div>
                 <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
@@ -193,30 +224,6 @@ export default function ImpactPage() {
             </div>
           </div>
 
-          <div className="mt-5">
-            <div className="flex items-baseline justify-between">
-              <SectionLabel>Recommended actions for {zoneLabel(highestRisk)}</SectionLabel>
-              <span className="text-[10.5px] text-ink-4">
-                highest risk score &middot; {highestRisk.riskScore?.toFixed(1)}
-              </span>
-            </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {highestRisk.topDrivers.map((entry) => (
-                <div key={entry.driver} className="rounded-xl border border-line bg-surface p-4">
-                  <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-accent">
-                    {entry.driver}
-                  </span>
-                  <p className="mt-2.5 text-[12px] leading-relaxed text-ink-2 text-pretty">
-                    {entry.recommendation}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-[10.5px] leading-relaxed text-ink-5">
-              Risk scores and recommendations come from the IsoTherm risk engine. Weights are transparent
-              prototype values, not medically validated thresholds.
-            </p>
-          </div>
         </div>
       </div>
     </AppShell>
