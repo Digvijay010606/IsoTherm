@@ -264,6 +264,84 @@ def name_zones(zones, candidates):
         zone["name"] = f"{label} area"
 
 
+RISK_WEIGHTS = {
+    "Heat exposure": 0.40,
+    "Temperature range": 0.05,
+    "Building density": 0.15,
+    "Road density": 0.05,
+    "Green-cover deficit": 0.15,
+    "Shade deficit": 0.10,
+    "Cooling-water deficit": 0.10,
+}
+
+
+def percentile(ordered, fraction):
+    position = fraction * (len(ordered) - 1)
+    lower_index = math.floor(position)
+    upper_index = math.ceil(position)
+    if lower_index == upper_index:
+        return ordered[lower_index]
+    lower_value = ordered[lower_index]
+    return lower_value + (ordered[upper_index] - lower_value) * (position - lower_index)
+
+
+def min_max_normalize(values, cap_percentile=0.99):
+    numbers = [float(value) if value is not None else 0.0 for value in values]
+    ordered = sorted(numbers)
+    if ordered[0] == ordered[-1]:
+        return [0.0] * len(numbers)
+
+    lower = percentile(ordered, 0.01)
+    upper = percentile(ordered, cap_percentile)
+    if upper <= lower:
+        return [0.0] * len(numbers)
+
+    span = upper - lower
+    return [min(max((min(max(value, lower), upper) - lower) / span, 0.0), 1.0) for value in numbers]
+
+
+def attach_risk_features(records):
+    column = lambda name: [record[name] for record in records]
+
+    normalized_average = min_max_normalize(column("avg_temp"))
+    normalized_peak = min_max_normalize(column("max_temp"))
+    temperature_range = min_max_normalize(column("temp_range"))
+    building_density = min_max_normalize(column("building_density"))
+    road_density = min_max_normalize(column("road_density"))
+
+    def deficit(name):
+        logged = [math.log1p(value) for value in column(name)]
+        return [1.0 - value for value in min_max_normalize(logged)]
+
+    green_cover = deficit("green_cover_density")
+    water_body = deficit("water_body_density")
+    shade = deficit("shade_relevant_amenity_density")
+
+    for index, record in enumerate(records):
+        record["features"] = {
+            "Heat exposure": 0.65 * normalized_average[index] + 0.35 * normalized_peak[index],
+            "Temperature range": temperature_range[index],
+            "Building density": building_density[index],
+            "Road density": road_density[index],
+            "Green-cover deficit": green_cover[index],
+            "Shade deficit": shade[index],
+            "Cooling-water deficit": water_body[index],
+        }
+
+
+def verify_risk_features(records):
+    for record in records:
+        weighted = sum(record["features"][label] * weight for label, weight in RISK_WEIGHTS.items())
+        recomputed = round(min(max(weighted * 100, 0.0), 100.0), 2)
+        if abs(recomputed - record["risk_score"]) > 0.01:
+            raise SystemExit(
+                f"risk feature reconstruction disagrees with the risk engine on tile "
+                f"{record['tile_id']}: rebuilt {recomputed}, engine {record['risk_score']}. "
+                "The engine changed — update RISK_WEIGHTS and attach_risk_features to match "
+                "the notebook before exporting."
+            )
+
+
 def majority(values):
     if not values:
         return None
@@ -280,25 +358,43 @@ def driver_recommendation_map(records):
     return mapping
 
 
-def summarize_zone_risk(real_tile_ids, risks, risk_by_tile_id):
-    records = [risk_by_tile_id[tile_id] for tile_id in real_tile_ids if tile_id in risk_by_tile_id]
-    recommendation_by_driver = driver_recommendation_map(records)
+CONTRIBUTION_FLOOR = 5.0
 
-    driver_counts = Counter(record["top_risk_driver"] for record in records)
-    top_drivers = [
-        {"driver": driver_label, "recommendation": recommendation_by_driver.get(driver_label)}
-        for driver_label, _count in driver_counts.most_common(3)
+
+def rank_zone_drivers(risk_features, recommendation_by_driver):
+    contributions = [
+        {
+            "driver": label,
+            "recommendation": recommendation_by_driver.get(label),
+            "contribution": round(risk_features[label] * weight * 100, 1),
+        }
+        for label, weight in RISK_WEIGHTS.items()
+        if label in risk_features
     ]
+    material = [entry for entry in contributions if entry["contribution"] >= CONTRIBUTION_FLOOR]
+    material.sort(key=lambda entry: entry["contribution"], reverse=True)
+    return material
+
+
+def summarize_zone_risk(real_tile_ids, risks, risk_by_tile_id, recommendation_by_driver):
+    records = [risk_by_tile_id[tile_id] for tile_id in real_tile_ids if tile_id in risk_by_tile_id]
+
+    risk_features = {}
+    if records:
+        for label in RISK_WEIGHTS:
+            total = sum(record["features"][label] for record in records)
+            risk_features[label] = round(total / len(records), 6)
 
     return {
         "riskScore": round(sum(risks) / len(risks), 1) if risks else None,
         "riskCategory": majority([record["risk_category"] for record in records]),
         "dataConfidence": majority([record["data_confidence_label"] for record in records]),
-        "topDrivers": top_drivers,
+        "topDrivers": rank_zone_drivers(risk_features, recommendation_by_driver),
+        "riskFeatures": risk_features,
     }
 
 
-def build_zones(grid, index_to_tile_id, risk_by_tile_id):
+def build_zones(grid, index_to_tile_id, risk_by_tile_id, recommendation_by_driver):
     cols = grid["cols"]
     rows = grid["rows"]
     peak = grid["layers"]["peak"]
@@ -348,7 +444,11 @@ def build_zones(grid, index_to_tile_id, risk_by_tile_id):
                 "meanTemp": round(sum(means) / len(means), 1),
             }
 
-            zone.update(summarize_zone_risk(real_tile_ids, risks, risk_by_tile_id))
+            zone.update(
+                summarize_zone_risk(
+                    real_tile_ids, risks, risk_by_tile_id, recommendation_by_driver
+                )
+            )
             zones.append(zone)
 
     zones.sort(key=lambda zone: (-zone["peakMean"], zone["id"]))
@@ -530,7 +630,11 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     with open(RISK_SCORES_PATH, "r", encoding="utf-8") as handle:
-        risk_by_tile_id = {record["tile_id"]: record for record in json.load(handle)}
+        risk_records = json.load(handle)
+
+    attach_risk_features(risk_records)
+    verify_risk_features(risk_records)
+    risk_by_tile_id = {record["tile_id"]: record for record in risk_records}
 
     connection = sqlite3.connect(DATABASE_PATH)
     cursor = connection.cursor()
@@ -552,7 +656,8 @@ def main():
     for values in grid["layers"].values():
         holes_filled = fill_interior_holes(values, grid["cols"], grid["rows"])
 
-    zones = build_zones(grid, index_to_tile_id, risk_by_tile_id)
+    recommendation_by_driver = driver_recommendation_map(risk_records)
+    zones = build_zones(grid, index_to_tile_id, risk_by_tile_id, recommendation_by_driver)
 
     elements = json.loads(osm["data"])["elements"]
     relief, parks = build_amenities(elements)
@@ -618,6 +723,7 @@ def main():
             "period": {"start": fortyguard["start_date"], "end": fortyguard["end_date"]},
             "granularityMeters": TILE_METERS,
             "tileCount": len(features),
+            "riskWeights": RISK_WEIGHTS,
             "sources": {
                 "temperature": {
                     "provider": "FortyGuard Temperature API",

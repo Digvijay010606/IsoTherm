@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
-import { RecommendedActions } from "@/components/RecommendedActions";
+import { DriverBreakdown } from "@/components/DriverBreakdown";
 import { WarningIcon, InfoIcon } from "@/components/icons";
 import { WARNING_SIGNS } from "@/lib/copy";
 import { ZONES, nearestRelief, nearestZone, reliefLabel, zoneLabel } from "@/lib/realData";
@@ -105,16 +105,11 @@ export default function SafetyPage() {
               </div>
             </div>
 
-            <div className="mt-4 space-y-2.5 border-t border-line pt-4">
+            <div className="mt-4 border-t border-line pt-4">
               <SectionLabel>What drives it here</SectionLabel>
-              {zone.topDrivers.map((entry) => (
-                <div key={entry.driver}>
-                  <div className="text-[12.5px] font-medium text-ink-2">{entry.driver}</div>
-                  <div className="mt-1">
-                    <RecommendedActions text={entry.recommendation} />
-                  </div>
-                </div>
-              ))}
+              <div className="mt-1">
+                <DriverBreakdown key={zone.id} drivers={zone.topDrivers} />
+              </div>
             </div>
 
             <div className="mt-5 grid grid-cols-3 gap-4 border-t border-line pt-4">

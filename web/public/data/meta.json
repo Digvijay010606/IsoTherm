@@ -11,6 +11,15 @@
     "end": "2026-08-14",
     "start": "2026-08-01"
   },
+  "riskWeights": {
+    "Building density": 0.15,
+    "Cooling-water deficit": 0.1,
+    "Green-cover deficit": 0.15,
+    "Heat exposure": 0.4,
+    "Road density": 0.05,
+    "Shade deficit": 0.1,
+    "Temperature range": 0.05
+  },
   "sources": {
     "context": {
       "fetchedAt": "2026-08-19T16:01:55.982380",
