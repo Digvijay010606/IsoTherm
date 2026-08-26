@@ -12,6 +12,7 @@ export type TilesFile = {
 export type RiskDriver = {
   driver: string;
   recommendation: string | null;
+  contribution: number;
 };
 
 export type Zone = {
@@ -28,6 +29,7 @@ export type Zone = {
   riskCategory: string | null;
   dataConfidence: string | null;
   topDrivers: RiskDriver[];
+  riskFeatures: Record<string, number>;
 };
 
 export type ReliefKind = "water" | "shade" | "cooling" | "medical" | "facility";

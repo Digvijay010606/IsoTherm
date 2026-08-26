@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
-import { RecommendedActions } from "@/components/RecommendedActions";
+import { DriverBreakdown } from "@/components/DriverBreakdown";
 import { HeatCanvas } from "@/components/HeatCanvas";
 import { MapMarkers, MARKER_KINDS, MARKER_COUNTS } from "@/components/MapMarkers";
 import { HEAT_LAYERS, TEMPERATURE_METRICS } from "@/lib/heatLayers";
@@ -323,15 +323,8 @@ export default function MapPage() {
           {zone.topDrivers.length > 0 ? (
             <div className="rounded-xl border border-line bg-surface p-3">
               <SectionLabel>What drives the risk</SectionLabel>
-              <div className="mt-2 space-y-2.5">
-                {zone.topDrivers.map((entry) => (
-                  <div key={entry.driver}>
-                    <div className="text-[12px] font-medium text-ink-2">{entry.driver}</div>
-                    <div className="mt-1">
-                      <RecommendedActions text={entry.recommendation} />
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-1">
+                <DriverBreakdown key={zone.id} drivers={zone.topDrivers} />
               </div>
             </div>
           ) : null}

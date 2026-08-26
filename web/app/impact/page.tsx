@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
-import { RecommendedActions } from "@/components/RecommendedActions";
+import { DriverBreakdown } from "@/components/DriverBreakdown";
+import { RiskProjection } from "@/components/RiskProjection";
 import { ZONES, coolingGapZones, nearestZone, zoneLabel } from "@/lib/realData";
 import { RANKING_METRICS } from "@/lib/heatLayers";
 import type { HeatLayerId } from "@/lib/types";
@@ -42,6 +43,8 @@ export default function ImpactPage() {
   const gapZones = coolingGapZones();
   const criticalCount = ZONES.filter((zone) => zone.riskCategory === "Critical").length;
   const highestRisk = [...ZONES].sort((a, b) => (b.riskScore ?? 0) - (a.riskScore ?? 0))[0];
+  const focusedZone = ZONES.find((zone) => zone.id === highlightedZoneId) ?? highestRisk;
+  const showsHighestRisk = focusedZone.id === highestRisk.id;
 
   const rail = (
     <div className="space-y-5">
@@ -129,8 +132,9 @@ export default function ImpactPage() {
           </div>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-            <div className="overflow-hidden rounded-xl border border-line bg-surface">
-              <div className="max-h-[476px] overflow-y-auto">
+            <div className="relative">
+              <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface lg:absolute lg:inset-0">
+                <div className="max-h-[560px] min-h-0 flex-1 overflow-y-auto lg:max-h-none">
                 <div className="sticky top-0 z-10 flex items-baseline justify-between border-b border-line bg-surface px-4 py-3">
                   <span className="text-[13.5px] font-semibold text-ink">
                     Zones ranked by{" "}
@@ -146,13 +150,16 @@ export default function ImpactPage() {
                     const value = METRIC_FIELD[metric](zone);
                     const pct = spread > 0 ? ((value - rangeBottom) / spread) * 100 : 0;
                     return (
-                      <div
+                      <button
                         key={zone.id}
                         id={`zone-row-${zone.id}`}
-                        className={`grid grid-cols-[22px_1fr_52px] items-center gap-2.5 border-b border-line-soft py-2.5 last:border-none sm:grid-cols-[26px_1fr_90px_58px] lg:grid-cols-[26px_1fr_120px_58px] ${
+                        type="button"
+                        aria-pressed={zone.id === highlightedZoneId}
+                        onClick={() => setHighlightedZoneId(zone.id)}
+                        className={`grid w-full grid-cols-[22px_1fr_52px] items-center gap-2.5 border-b border-line-soft py-2.5 text-left transition-colors last:border-none sm:grid-cols-[26px_1fr_90px_58px] lg:grid-cols-[26px_1fr_120px_58px] ${
                           zone.id === highlightedZoneId
                             ? "-mx-2 rounded-lg bg-accent/10 px-2 ring-1 ring-accent/40"
-                            : ""
+                            : "hover:bg-surface-2/50"
                         }`}
                       >
                         <span className="font-mono text-[10.5px] text-ink-5">{index + 1}</span>
@@ -170,9 +177,10 @@ export default function ImpactPage() {
                         <span className="text-right font-mono text-[12px] tabular-nums text-ink">
                           {value.toFixed(1)}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
+                </div>
                 </div>
               </div>
             </div>
@@ -182,29 +190,27 @@ export default function ImpactPage() {
                 <div className="flex items-baseline justify-between gap-2">
                   <div className="text-[13.5px] font-semibold text-ink">Recommended actions</div>
                   <span className="shrink-0 font-mono text-[11px] text-heat-3">
-                    {highestRisk.riskScore?.toFixed(1)}
+                    {focusedZone.riskScore?.toFixed(1)}
                   </span>
                 </div>
                 <p className="mt-1 text-[11.5px] leading-relaxed text-ink-3">
-                  Highest risk zone &mdash; {zoneLabel(highestRisk)}
+                  {zoneLabel(focusedZone)}
                 </p>
-                <div className="mt-3 space-y-2">
-                  {highestRisk.topDrivers.map((entry) => (
-                    <div key={entry.driver} className="rounded-lg border border-line bg-app p-3">
-                      <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-accent">
-                        {entry.driver}
-                      </span>
-                      <div className="mt-2">
-                        <RecommendedActions text={entry.recommendation} />
-                      </div>
-                    </div>
-                  ))}
+                <p className="mt-1.5 text-[10.5px] text-ink-5">
+                  {showsHighestRisk
+                    ? "Highest risk zone. Select any row to see another."
+                    : `${focusedZone.riskCategory} · rank ${focusedZone.rank} of ${ZONES.length}`}
+                </p>
+                <div className="mt-3 border-t border-line pt-1">
+                  <DriverBreakdown key={focusedZone.id} drivers={focusedZone.topDrivers} />
                 </div>
                 <p className="mt-3 text-[10px] leading-relaxed text-ink-5">
                   From the IsoTherm risk engine. Weights are transparent prototype values, not medically
                   validated thresholds.
                 </p>
               </div>
+
+              <RiskProjection zone={focusedZone} />
 
               <div className="rounded-xl border border-line bg-surface p-4">
                 <div className="text-[13.5px] font-semibold text-ink">Cooling coverage gap</div>
