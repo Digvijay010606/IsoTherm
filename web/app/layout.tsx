@@ -16,7 +16,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chhaya",
+  title: "IsoTherm",
   description: "Heat vulnerability map and outdoor worker safety companion for Houston, TX.",
 };
 
