@@ -82,6 +82,17 @@ export type ReportCategory = {
   label: string;
 };
 
+export type Report = {
+  id: string;
+  createdAt: string;
+  categoryId: ReportCategoryId;
+  detail: string | null;
+  zoneId: string;
+  lat: number;
+  lon: number;
+  photoUrl: string | null;
+};
+
 export type ForecastPoint = {
   hourLabel: string;
   heatIndexC: number;

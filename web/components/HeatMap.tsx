@@ -8,7 +8,7 @@ import { renderTileImage } from "@/lib/tileImage";
 import { tileExtent, zoneBounds } from "@/lib/projection";
 import { MARKER_COLORS, MARKER_GLYPHS } from "./MapMarkers";
 import { RELIEF_POINTS, reliefLabel, zoneLabel } from "@/lib/realData";
-import type { HeatLayerId, Place, ReliefKind, TilesFile, Zone } from "@/lib/types";
+import type { HeatLayerId, Place, ReliefKind, Report, TilesFile, Zone } from "@/lib/types";
 
 const ESRI_CANVAS = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas";
 const BASEMAP_URL = `${ESRI_CANVAS}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`;
@@ -31,6 +31,7 @@ const HEAT_OPACITY = 0.88;
 const AREA_EDGE_COLOR = "#4a5058";
 const FOOTPRINT_COLOR = "#f2f1ee";
 const SEARCH_COLOR = "#4fc3b8";
+const REPORT_COLOR = "#f0b93f";
 
 function reliefIcon(kind: string) {
   return L.divIcon({
@@ -41,12 +42,24 @@ function reliefIcon(kind: string) {
   });
 }
 
+function reportIcon(total: number) {
+  const badge = total > 1 ? `<i class="relief-count">${total}</i>` : "";
+  return L.divIcon({
+    className: "relief-marker",
+    html: `<span class="relief-pin relief-pin-report" style="background:${REPORT_COLOR}">${MARKER_GLYPHS.report}${badge}</span>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+}
+
 type HeatMapProps = {
   layer: HeatLayerId;
   zone: Zone;
   zoneTiles: number;
   visibleKinds: Set<ReliefKind>;
   searchedPlace: Place | null;
+  reports: Report[];
+  showReports: boolean;
   onSelect: (lat: number, lon: number) => void;
   onReady?: (tiles: TilesFile) => void;
 };
@@ -57,6 +70,8 @@ export function HeatMap({
   zoneTiles,
   visibleKinds,
   searchedPlace,
+  reports,
+  showReports,
   onSelect,
   onReady,
 }: HeatMapProps) {
@@ -67,6 +82,7 @@ export function HeatMap({
   const mapRef = useRef<L.Map | null>(null);
   const reliefRef = useRef<L.LayerGroup | null>(null);
   const searchRef = useRef<L.LayerGroup | null>(null);
+  const reportsRef = useRef<L.LayerGroup | null>(null);
   const selectRef = useRef(onSelect);
 
   useEffect(() => {
@@ -128,6 +144,7 @@ export function HeatMap({
 
     mapRef.current = map;
     reliefRef.current = L.layerGroup().addTo(map);
+    reportsRef.current = L.layerGroup().addTo(map);
     searchRef.current = L.layerGroup().addTo(map);
 
     let fitted = false;
@@ -147,6 +164,7 @@ export function HeatMap({
       map.remove();
       mapRef.current = null;
       reliefRef.current = null;
+      reportsRef.current = null;
       searchRef.current = null;
     };
   }, [tiles]);
@@ -222,6 +240,41 @@ export function HeatMap({
       group.clearLayers();
     };
   }, [tiles, visibleKinds]);
+
+  useEffect(() => {
+    const group = reportsRef.current;
+    if (!group || !tiles) return;
+
+    group.clearLayers();
+    if (!showReports) return;
+
+    const counts = new Map<string, number>();
+    for (const report of reports) {
+      counts.set(report.zoneId, (counts.get(report.zoneId) ?? 0) + 1);
+    }
+
+    const seen = new Set<string>();
+    for (const report of reports) {
+      if (seen.has(report.zoneId)) continue;
+      seen.add(report.zoneId);
+
+      const total = counts.get(report.zoneId) ?? 1;
+      L.marker([report.lat, report.lon], { icon: reportIcon(total) })
+        .bindTooltip(total === 1 ? "1 report" : `${total} reports`, {
+          direction: "top",
+          className: "map-label",
+        })
+        .on("click", (event) => {
+          L.DomEvent.stop(event);
+          selectRef.current(report.lat, report.lon);
+        })
+        .addTo(group);
+    }
+
+    return () => {
+      group.clearLayers();
+    };
+  }, [tiles, reports, showReports]);
 
   useEffect(() => {
     const group = searchRef.current;

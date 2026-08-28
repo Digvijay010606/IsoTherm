@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
@@ -17,8 +17,11 @@ import {
   zoneCode,
   zoneLabel,
 } from "@/lib/realData";
+import { subscribeToReports } from "@/lib/reports";
+import { supabaseReady } from "@/lib/supabase";
 import { RAMP } from "@/lib/tileImage";
-import type { HeatLayerId, Place, ReliefKind, TilesFile } from "@/lib/types";
+import { ReportIcon } from "@/components/icons";
+import type { HeatLayerId, Place, ReliefKind, Report, TilesFile } from "@/lib/types";
 
 const HeatMap = dynamic(() => import("@/components/HeatMap").then((module) => module.HeatMap), {
   ssr: false,
@@ -36,6 +39,10 @@ export default function MapPage() {
   const [searchedPlace, setSearchedPlace] = useState<Place | null>(null);
   const [tiles, setTiles] = useState<TilesFile | null>(null);
   const [visibleKinds, setVisibleKinds] = useState<Set<ReliefKind>>(() => new Set<ReliefKind>());
+  const [reports, setReports] = useState<Report[]>([]);
+  const [showReports, setShowReports] = useState(true);
+
+  useEffect(() => subscribeToReports(setReports), []);
 
   const activeLayer = HEAT_LAYERS.find((layer) => layer.id === layerId) ?? HEAT_LAYERS[0];
   const showsTemperature = activeLayer.id === "peak";
@@ -176,6 +183,36 @@ export default function MapPage() {
         </p>
       </div>
 
+      {supabaseReady ? (
+        <div>
+          <SectionLabel>Community</SectionLabel>
+          <div className="mt-2 space-y-0.5">
+            <button
+              type="button"
+              onClick={() => setShowReports((current) => !current)}
+              aria-pressed={showReports}
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors hover:bg-surface-2/60"
+            >
+              <span
+                className="flex size-[18px] shrink-0 items-center justify-center rounded-md border"
+                style={{
+                  borderColor: showReports ? "var(--marker-report)" : "var(--line)",
+                  color: showReports ? "var(--marker-report)" : "var(--ink-5)",
+                }}
+              >
+                <ReportIcon size={11} />
+              </span>
+              <span className={`flex-1 text-[12.5px] ${showReports ? "text-ink" : "text-ink-3"}`}>
+                Reported conditions
+              </span>
+              <span className="font-mono text-[10.5px] text-ink-4">{reports.length}</span>
+            </button>
+          </div>
+          <p className="mt-2 px-2.5 text-[10.5px] leading-relaxed text-ink-5">
+            Anonymous, rounded to a 1.5 km zone.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 
@@ -193,6 +230,8 @@ export default function MapPage() {
               zoneTiles={ZONE_TILES}
               visibleKinds={visibleKinds}
               searchedPlace={searchedPlace}
+              reports={reports}
+              showReports={showReports}
               onSelect={handleMapSelect}
               onReady={setTiles}
             />
