@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { LogoMark } from "./Logo";
 
 const SPLASH_ROUTE = "/";
 const HOLD_MS = 1400;
@@ -37,9 +38,10 @@ export function AppEntrance({ children }: { children: React.ReactNode }) {
             stage === "leaving" ? "preloader-overlay-leaving pointer-events-none" : ""
           }`}
         >
-          <div className="px-6 text-center">
-            <div className="preloader-rise text-[clamp(40px,10vw,68px)] leading-none font-semibold tracking-tight text-ink">
-              Chhaya
+          <div className="flex flex-col items-center px-6 text-center">
+            <LogoMark size={54} className="preloader-rise mb-5" />
+            <div className="preloader-rise preloader-rise-late text-[clamp(40px,10vw,68px)] leading-none font-semibold tracking-tight text-ink">
+              IsoTherm
             </div>
             <p className="preloader-rise preloader-rise-late mt-4 text-[13px] text-ink-3 text-balance sm:text-[14.5px]">
               Heat Vulnerability &amp; Outdoor Worker Safety Mapper

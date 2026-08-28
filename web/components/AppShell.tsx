@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SearchBox } from "./SearchBox";
 import { MapIcon, ChartIcon, ShieldIcon, ReportIcon, PinIcon } from "./icons";
+import { LogoMark } from "./Logo";
 import { AREA } from "@/lib/realData";
 import type { Place } from "@/lib/types";
 
@@ -31,7 +32,8 @@ export function AppShell({ rail, onPlaceSelect, searchPlaceholder, children }: A
       <header className="relative z-30 flex shrink-0 justify-center px-4 pt-3 pb-2">
         <div className="flex max-w-full items-center gap-1 rounded-full border border-line bg-surface/95 py-1 pr-1.5 pl-3 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur">
           <Link href="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-            <span className="text-[14px] font-semibold tracking-tight text-ink">Chhaya</span>
+            <LogoMark size={17} className="shrink-0" />
+            <span className="text-[14px] font-semibold tracking-tight text-ink">IsoTherm</span>
             <span
               className={`items-center gap-1 rounded-full bg-surface-2 py-1 pr-2.5 pl-2 ${
                 searchExpanded ? "hidden lg:flex" : "hidden md:flex"
