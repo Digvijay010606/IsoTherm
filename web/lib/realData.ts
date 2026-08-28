@@ -17,6 +17,8 @@ export const PERIOD_START = metaFile.period.start;
 export const PERIOD_END = metaFile.period.end;
 export const TILE_COUNT = metaFile.tileCount;
 
+export const CONDITIONS = metaFile.conditions;
+
 export function zoneLabel(zone: Zone) {
   return zone.name;
 }

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
 import { DriverBreakdown } from "@/components/DriverBreakdown";
+import { AreaConditions } from "@/components/AreaConditions";
 import { WarningIcon, InfoIcon } from "@/components/icons";
 import { WARNING_SIGNS } from "@/lib/copy";
 import { ZONES, nearestRelief, nearestZone, reliefLabel, zoneLabel } from "@/lib/realData";
@@ -132,6 +133,10 @@ export default function SafetyPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="mt-4">
+            <AreaConditions />
           </div>
 
           <div className="mt-5">

@@ -7,7 +7,11 @@ from collections import Counter
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATABASE_PATH = os.path.join(REPO_ROOT, "data", "heat_risk.db")
 RISK_SCORES_PATH = os.path.join(REPO_ROOT, "data", "tile_risk_scores.json")
+ENV_PARAMS_PATH = os.path.join(REPO_ROOT, "data", "zone_env_params.json")
+ANALYTICS_DIR = os.path.join(REPO_ROOT, "data", "analytics")
 OUTPUT_DIR = os.path.join(REPO_ROOT, "web", "public", "data")
+
+ANALYTIC_LAYERS = ["exceedance", "persistence"]
 
 TILE_METERS = 100
 ZONE_TILES = 15
@@ -134,6 +138,45 @@ def build_grid(features, risk_by_tile_id):
     }
 
     return grid, placed, collisions, risk_matched, index_to_tile_id
+
+
+def attach_analytic_layers(grid, index_to_tile_id):
+    index_by_tile_id = {
+        tile_id: index
+        for index, tile_id in enumerate(index_to_tile_id)
+        if tile_id is not None
+    }
+
+    attached = {}
+
+    for name in ANALYTIC_LAYERS:
+        path = os.path.join(ANALYTICS_DIR, f"{name}.json")
+        if not os.path.exists(path):
+            continue
+
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        values = [None] * (grid["cols"] * grid["rows"])
+        matched = 0
+
+        for feature in payload["result"]["map_data"]["features"]:
+            properties = feature["properties"]
+            value = properties.get("value")
+            index = index_by_tile_id.get(properties.get("tile_id"))
+            if index is None or not isinstance(value, (int, float)):
+                continue
+            values[index] = round(value, 1)
+            matched += 1
+
+        grid["layers"][name] = values
+        attached[name] = {
+            "matched": matched,
+            "params": payload.get("params") or {},
+            "units": (payload["result"].get("stats_data") or {}).get("units"),
+        }
+
+    return attached
 
 
 def fill_interior_holes(values, cols, rows):
@@ -340,6 +383,34 @@ def verify_risk_features(records):
                 "The engine changed — update RISK_WEIGHTS and attach_risk_features to match "
                 "the notebook before exporting."
             )
+
+
+def summarize_conditions():
+    if not os.path.exists(ENV_PARAMS_PATH):
+        return None
+
+    with open(ENV_PARAMS_PATH, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    samples = list(payload.get("zones", {}).values())
+    if not samples:
+        return None
+
+    def mean(name):
+        values = [sample[name] for sample in samples if sample.get(name) is not None]
+        return round(sum(values) / len(values), 1) if values else None
+
+    def highest(name):
+        values = [sample[name] for sample in samples if sample.get(name) is not None]
+        return round(max(values), 1) if values else None
+
+    return {
+        "sampleDate": payload.get("sampleDate"),
+        "wetBulbMax": highest("wetBulbMax"),
+        "wetBulbMean": mean("wetBulbMean"),
+        "humidityMean": mean("humidityMean"),
+        "zonesSampled": len(samples),
+    }
 
 
 def majority(values):
@@ -652,6 +723,8 @@ def main():
 
     grid, placed, collisions, risk_matched, index_to_tile_id = build_grid(features, risk_by_tile_id)
 
+    analytics = attach_analytic_layers(grid, index_to_tile_id)
+
     holes_filled = 0
     for values in grid["layers"].values():
         holes_filled = fill_interior_holes(values, grid["cols"], grid["rows"])
@@ -735,7 +808,27 @@ def main():
                     "provider": "OpenStreetMap via Overpass",
                     "fetchedAt": osm["fetched_at"],
                 },
+                "exposure": {
+                    "provider": "FortyGuard Temperature API",
+                    "endpoint": "/v1/heatmap",
+                    "analytics": sorted(analytics),
+                    "thresholdCelsius": next(
+                        (
+                            entry["params"].get("threshold")
+                            for entry in analytics.values()
+                            if entry["params"].get("threshold") is not None
+                        ),
+                        None,
+                    ),
+                    "units": next(
+                        (entry["units"] for entry in analytics.values() if entry["units"]),
+                        None,
+                    ),
+                }
+                if analytics
+                else None,
             },
+            "conditions": summarize_conditions(),
         },
     )
 
@@ -744,6 +837,8 @@ def main():
     print(f"grid          {grid['cols']} x {grid['rows']}")
     print(f"tiles placed  {placed} of {len(features)} (collisions {collisions})")
     print(f"risk matched  {risk_matched} of {placed} tiles")
+    for name in sorted(analytics):
+        print(f"{name:<13} {analytics[name]['matched']} of {placed} tiles")
     print(f"holes filled  {holes_filled} interior cells per layer")
     print(f"zones         {len(zones)}")
     print(f"relief        {len(relief)}")
@@ -752,6 +847,8 @@ def main():
     print(f"peak range    {ranges['peak'][0]} to {ranges['peak'][1]} C")
     print(f"mean range    {ranges['mean'][0]} to {ranges['mean'][1]} C")
     print(f"risk range    {ranges['risk'][0]} to {ranges['risk'][1]}")
+    for name in sorted(analytics):
+        print(f"{name[:9]:<9} rng {ranges[name][0]} to {ranges[name][1]} hours")
     print()
     print(f"tiles.json      {tiles_bytes / 1024:8.1f} KB")
     print(f"zones.json      {zones_bytes / 1024:8.1f} KB")
