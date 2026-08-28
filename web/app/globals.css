@@ -22,6 +22,7 @@
   --heat-4: #c2412e;
   --heat-5: #7e1f1a;
   --danger-ink: #f0857a;
+  --marker-report: #f0b93f;
 }
 
 @theme inline {
@@ -153,6 +154,30 @@ select option {
   color: var(--app);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
   outline: 1px solid rgba(0, 0, 0, 0.45);
+}
+
+.relief-pin-report {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  outline-width: 1.5px;
+}
+
+.relief-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--app);
+  color: var(--ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 9px;
+  font-style: normal;
+  line-height: 13px;
+  text-align: center;
 }
 
 .leaflet-container .leaflet-control-zoom a,

@@ -1,13 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
 import { Chip } from "@/components/Chip";
 import { ZoneThumb } from "@/components/ZoneThumb";
-import { CameraIcon, CheckIcon, ArrowRightIcon } from "@/components/icons";
+import { CameraIcon, CheckIcon, ArrowRightIcon, CloseIcon } from "@/components/icons";
 import { REPORT_CATEGORIES } from "@/lib/copy";
 import { ZONES, nearestZone, zoneLabel } from "@/lib/realData";
+import { MAX_PHOTO_BYTES, submitReport } from "@/lib/reports";
+import { supabaseReady } from "@/lib/supabase";
 import type { ReportCategoryId } from "@/lib/types";
 
 export default function ReportPage() {
@@ -15,7 +17,73 @@ export default function ReportPage() {
   const [zoneId, setZoneId] = useState(ZONES[0].id);
   const [detail, setDetail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const whereRef = useRef<HTMLDivElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
+
+  function attachPhoto(file: File | null) {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = file ? URL.createObjectURL(file) : null;
+    setPhoto(file);
+    setPhotoPreview(previewUrlRef.current);
+  }
+
+  function clearPhoto() {
+    attachPhoto(null);
+    if (photoInputRef.current) photoInputRef.current.value = "";
+  }
+
+  function choosePhoto(file: File | null) {
+    setError(null);
+    if (!file) return clearPhoto();
+    if (!file.type.startsWith("image/")) {
+      setError("Only image files can be attached.");
+      return clearPhoto();
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError("That photo is larger than 5 MB.");
+      return clearPhoto();
+    }
+    attachPhoto(file);
+  }
+
+  function resetForm() {
+    setSubmitted(false);
+    setCategoryId(null);
+    setDetail("");
+    setError(null);
+    clearPhoto();
+  }
+
+  async function handleSubmit() {
+    if (!categoryId) return;
+    setError(null);
+
+    if (!supabaseReady) {
+      setSubmitted(true);
+      return;
+    }
+
+    setPending(true);
+    try {
+      await submitReport({ categoryId, detail, zoneId, photo });
+      setSubmitted(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The report could not be sent.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   const zone = ZONES.find((item) => item.id === zoneId) ?? ZONES[0];
   const category = REPORT_CATEGORIES.find((item) => item.id === categoryId);
@@ -44,7 +112,9 @@ export default function ReportPage() {
                 </div>
                 <h1 className="mt-4 text-[20px] font-semibold tracking-tight text-ink">Report submitted</h1>
                 <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-ink-3 text-pretty">
-                  Recorded for this demo. Submissions are not saved to a shared database.
+                  {supabaseReady
+                    ? "Published anonymously. It is on the map now, rounded to your zone."
+                    : "Recorded for this demo. Submissions are not saved to a shared database."}
                 </p>
               </div>
 
@@ -68,11 +138,7 @@ export default function ReportPage() {
               <div className="p-6">
                 <button
                   type="button"
-                  onClick={() => {
-                    setSubmitted(false);
-                    setCategoryId(null);
-                    setDetail("");
-                  }}
+                  onClick={resetForm}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent text-[14px] font-semibold text-accent-ink transition-[filter] hover:brightness-110"
                 >
                   Report something else
@@ -126,14 +192,48 @@ export default function ReportPage() {
                       placeholder="No shade anywhere on the east side of the site. Nearest working water tap is a 10 minute walk."
                       className="mt-2.5 h-[108px] w-full resize-none rounded-xl border border-line bg-app p-3.5 text-[13px] leading-relaxed text-ink placeholder:text-ink-5 focus:border-accent focus:outline-none"
                     />
-                    <button
-                      type="button"
-                      disabled
-                      className="mt-2.5 flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-dashed border-line text-[13px] text-ink-4"
-                    >
-                      <CameraIcon size={15} />
-                      Add a photo
-                    </button>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)}
+                    />
+
+                    {photo && photoPreview ? (
+                      <div className="mt-2.5 flex items-center gap-3 rounded-xl border border-line bg-app p-2.5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photoPreview}
+                          alt="Attached photo preview"
+                          className="size-12 shrink-0 rounded-lg object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-[12.5px] text-ink">{photo.name}</div>
+                          <div className="font-mono text-[10.5px] text-ink-4">
+                            {(photo.size / 1024).toFixed(0)} KB
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearPhoto}
+                          aria-label="Remove photo"
+                          className="shrink-0 rounded-lg border border-line p-1.5 text-ink-4 transition-colors hover:border-ink-4 hover:text-ink"
+                        >
+                          <CloseIcon size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => photoInputRef.current?.click()}
+                        className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-line text-[13px] text-ink-3 transition-colors hover:border-ink-4 hover:text-ink"
+                      >
+                        <CameraIcon size={15} />
+                        Add a photo
+                      </button>
+                    )}
                   </div>
 
                   <div ref={whereRef} className="flex flex-col">
@@ -160,29 +260,35 @@ export default function ReportPage() {
                   </div>
                 </div>
 
+                {error ? (
+                  <div className="mt-4 rounded-xl border border-danger-ink/40 bg-danger-ink/10 px-3.5 py-3 text-[12.5px] leading-relaxed text-danger-ink">
+                    {error} Your report has not been sent &mdash; nothing you typed was lost.
+                  </div>
+                ) : null}
+
                 <div className="mt-6 flex gap-3">
                   <button
                     type="button"
-                    disabled={!categoryId}
-                    onClick={() => setSubmitted(true)}
+                    disabled={!categoryId || pending}
+                    onClick={handleSubmit}
                     className="flex h-12 flex-1 items-center justify-center rounded-xl bg-accent text-[14px] font-semibold text-accent-ink transition-[filter] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Submit report
+                    {pending ? "Sending…" : "Submit report"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setCategoryId(null);
-                      setDetail("");
-                    }}
-                    className="h-12 rounded-xl border border-line px-6 text-[13.5px] text-ink-3 transition-colors hover:text-ink"
+                    disabled={pending}
+                    onClick={resetForm}
+                    className="h-12 rounded-xl border border-line px-6 text-[13.5px] text-ink-3 transition-colors hover:text-ink disabled:opacity-40"
                   >
                     Cancel
                   </button>
                 </div>
 
                 <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-5">
-                  Submissions are recorded for this demo and are not saved to a shared database.
+                  {supabaseReady
+                    ? "Reports are published anonymously and appear on the map for everyone."
+                    : "Submissions are recorded for this demo and are not saved to a shared database."}
                 </p>
               </div>
             </>
