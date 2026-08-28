@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { SectionLabel } from "@/components/SectionLabel";
 import { DriverBreakdown } from "@/components/DriverBreakdown";
-import { HeatCanvas } from "@/components/HeatCanvas";
-import { MapMarkers, MARKER_KINDS, MARKER_COUNTS } from "@/components/MapMarkers";
+import { MARKER_KINDS, MARKER_COUNTS } from "@/components/MapMarkers";
 import { HEAT_LAYERS, TEMPERATURE_METRICS } from "@/lib/heatLayers";
 import {
   ZONES,
@@ -17,10 +17,17 @@ import {
   zoneCode,
   zoneLabel,
 } from "@/lib/realData";
-import { footprintPercent, toLatLon, toPercent } from "@/lib/projection";
+import { RAMP } from "@/lib/tileImage";
 import type { HeatLayerId, Place, ReliefKind, TilesFile } from "@/lib/types";
 
-const RAMP_HEX = ["#35617f", "#4e93a0", "#e3b24a", "#dc7a3c", "#c2412e", "#7e1f1a"];
+const HeatMap = dynamic(() => import("@/components/HeatMap").then((module) => module.HeatMap), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center text-[13px] text-ink-4">
+      Loading map…
+    </div>
+  ),
+});
 
 export default function MapPage() {
   const [layerId, setLayerId] = useState<string>("risk");
@@ -31,15 +38,14 @@ export default function MapPage() {
   const [visibleKinds, setVisibleKinds] = useState<Set<ReliefKind>>(() => new Set<ReliefKind>());
 
   const activeLayer = HEAT_LAYERS.find((layer) => layer.id === layerId) ?? HEAT_LAYERS[0];
-  const showsRisk = activeLayer.dataKey === "risk";
-  const dataKey: HeatLayerId = showsRisk ? "risk" : metric;
+  const showsTemperature = activeLayer.id === "peak";
+  const dataKey: HeatLayerId = showsTemperature ? metric : activeLayer.dataKey;
+  const legendTitle = showsTemperature
+    ? (TEMPERATURE_METRICS.find((option) => option.id === metric)?.label ?? activeLayer.label)
+    : activeLayer.label;
   const zone = ZONES.find((item) => item.id === selectedZoneId) ?? ZONES[0];
   const relief = nearestRelief(zone.lat, zone.lon, 3);
   const range = tiles?.ranges[dataKey];
-  const marker = tiles ? toPercent(tiles, zone.lat, zone.lon) : null;
-  const footprint = tiles ? footprintPercent(tiles, ZONE_TILES) : null;
-  const searchPoint =
-    tiles && searchedPlace ? toPercent(tiles, searchedPlace.lat, searchedPlace.lon) : null;
 
   const coolest = ZONES[ZONES.length - 1];
   const riskTone =
@@ -63,15 +69,10 @@ export default function MapPage() {
     });
   }
 
-  function handleMapClick(event: React.MouseEvent<HTMLDivElement>) {
-    if (!tiles) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const xPercent = ((event.clientX - rect.left) / rect.width) * 100;
-    const yPercent = ((event.clientY - rect.top) / rect.height) * 100;
-    const { lat, lon } = toLatLon(tiles, xPercent, yPercent);
+  const handleMapSelect = useCallback((lat: number, lon: number) => {
     setSelectedZoneId(nearestZone(lat, lon).id);
     setSearchedPlace(null);
-  }
+  }, []);
 
   function handlePlaceSelect(place: Place) {
     setSelectedZoneId(nearestZone(place.lat, place.lon).id);
@@ -103,9 +104,7 @@ export default function MapPage() {
                   <span className={`block text-[12.5px] ${active ? "font-medium text-ink" : "text-ink-2"}`}>
                     {layer.label}
                   </span>
-                  <span className="mt-0.5 block text-[10.5px] text-ink-4">
-                    {layer.dataKey === "risk" ? "Heat plus surroundings" : "14-day history"}
-                  </span>
+                  <span className="mt-0.5 block text-[10.5px] text-ink-4">{layer.caption}</span>
                 </span>
               </button>
             );
@@ -113,7 +112,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      {!showsRisk ? (
+      {showsTemperature ? (
         <div>
           <SectionLabel>Metric</SectionLabel>
           <div className="mt-2 space-y-0.5">
@@ -176,6 +175,7 @@ export default function MapPage() {
           From OpenStreetMap.
         </p>
       </div>
+
     </div>
   );
 
@@ -186,82 +186,33 @@ export default function MapPage() {
     >
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
         <section className="flex min-h-0 flex-col p-3 lg:flex-1">
-          <div
-            onClick={handleMapClick}
-            className="relative min-h-[320px] flex-1 cursor-pointer overflow-hidden rounded-2xl border border-line bg-app"
-          >
-            <HeatCanvas layer={dataKey} onReady={setTiles} />
-
-            {tiles ? <MapMarkers tiles={tiles} visible={visibleKinds} /> : null}
-
-            {marker && footprint ? (
-              <div
-                className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-ink shadow-[0_0_0_4px_rgba(12,13,15,0.45)]"
-                style={{
-                  left: `${marker.xPercent}%`,
-                  top: `${marker.yPercent}%`,
-                  width: `${footprint.widthPercent}%`,
-                  height: `${footprint.heightPercent}%`,
-                }}
-              />
-            ) : null}
-
-            {marker && footprint ? (
-              <div
-                className="pointer-events-none absolute max-w-[220px] -translate-x-1/2 truncate rounded-full border border-line bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
-                style={{
-                  left: `${marker.xPercent}%`,
-                  top: `calc(${marker.yPercent}% - ${footprint.heightPercent / 2}% - 26px)`,
-                }}
-                title={zoneLabel(zone)}
-              >
-                {zoneLabel(zone)}
-              </div>
-            ) : null}
-
-            {searchedPlace && searchPoint ? (
-              <>
-                <span
-                  className="pointer-events-none absolute z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_4px_rgba(79,195,184,0.25)]"
-                  style={{ left: `${searchPoint.xPercent}%`, top: `${searchPoint.yPercent}%` }}
-                />
-                <div
-                  className="pointer-events-none absolute z-10 max-w-[220px] -translate-x-1/2 truncate rounded-full border border-accent/40 bg-app/90 px-2.5 py-1 text-[11px] font-medium text-ink backdrop-blur"
-                  style={{
-                    left: `${searchPoint.xPercent}%`,
-                    top: `calc(${searchPoint.yPercent}% + 12px)`,
-                  }}
-                  title={searchedPlace.name}
-                >
-                  {searchedPlace.name}
-                </div>
-              </>
-            ) : null}
+          <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-2xl border border-line bg-app">
+            <HeatMap
+              layer={dataKey}
+              zone={zone}
+              zoneTiles={ZONE_TILES}
+              visibleKinds={visibleKinds}
+              searchedPlace={searchedPlace}
+              onSelect={handleMapSelect}
+              onReady={setTiles}
+            />
 
             {range ? (
-              <div className="absolute bottom-3 left-3 w-[196px] rounded-xl border border-line bg-app/90 p-3 backdrop-blur">
-                <SectionLabel>
-                  {showsRisk
-                    ? "Heat risk score"
-                    : metric === "peak"
-                      ? "Peak temperature"
-                      : metric === "mean"
-                        ? "Average temperature"
-                        : "Overnight low"}
-                </SectionLabel>
+              <div className="pointer-events-none absolute bottom-9 left-3 z-[1100] w-[196px] rounded-xl border border-line bg-app/90 p-3 backdrop-blur">
+                <SectionLabel>{legendTitle}</SectionLabel>
                 <div className="mt-2 flex gap-0.5">
-                  {RAMP_HEX.map((color) => (
+                  {RAMP.map((color) => (
                     <span key={color} className="h-2 flex-1 rounded-sm" style={{ backgroundColor: color }} />
                   ))}
                 </div>
                 <div className="mt-1.5 flex justify-between font-mono text-[10px] text-ink-3">
-                  <span>{range[0].toFixed(1)}{showsRisk ? "" : "°C"}</span>
-                  <span>{range[1].toFixed(1)}{showsRisk ? "" : "°C"}</span>
+                  <span>{range[0].toFixed(1)}{activeLayer.unit}</span>
+                  <span>{range[1].toFixed(1)}{activeLayer.unit}</span>
                 </div>
               </div>
             ) : null}
 
-            <div className="absolute right-3 bottom-3 flex items-center gap-2 rounded-full border border-line bg-app/90 px-3 py-1.5 backdrop-blur">
+            <div className="pointer-events-none absolute top-3 right-3 z-[1100] flex items-center gap-2 rounded-full border border-line bg-app/90 px-3 py-1.5 backdrop-blur">
               <span className="text-[10.5px] text-ink-4">FortyGuard Temperature API</span>
               <span className="h-1 w-1 rounded-full bg-accent" />
               <span className="font-mono text-[10.5px] text-ink-3">100 m</span>

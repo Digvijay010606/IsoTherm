@@ -20,3 +20,38 @@ export function footprintPercent(tiles: TilesFile, zoneTiles: number) {
     heightPercent: (zoneTiles / tiles.rows) * 100,
   };
 }
+
+export type LatLonBounds = [[number, number], [number, number]];
+
+export function tileSteps(tiles: TilesFile) {
+  const [minLon, minLat, maxLon, maxLat] = tiles.bounds;
+  return {
+    lonStep: (maxLon - minLon) / (tiles.cols - 1),
+    latStep: (maxLat - minLat) / (tiles.rows - 1),
+  };
+}
+
+export function tileExtent(tiles: TilesFile): LatLonBounds {
+  const [minLon, minLat, maxLon, maxLat] = tiles.bounds;
+  const { lonStep, latStep } = tileSteps(tiles);
+  return [
+    [minLat - latStep / 2, minLon - lonStep / 2],
+    [maxLat + latStep / 2, maxLon + lonStep / 2],
+  ];
+}
+
+export function zoneBounds(
+  tiles: TilesFile,
+  zoneTiles: number,
+  lat: number,
+  lon: number,
+): LatLonBounds {
+  const { lonStep, latStep } = tileSteps(tiles);
+  const [[southEdge, westEdge], [northEdge, eastEdge]] = tileExtent(tiles);
+  const halfLat = (zoneTiles * latStep) / 2;
+  const halfLon = (zoneTiles * lonStep) / 2;
+  return [
+    [Math.max(lat - halfLat, southEdge), Math.max(lon - halfLon, westEdge)],
+    [Math.min(lat + halfLat, northEdge), Math.min(lon + halfLon, eastEdge)],
+  ];
+}
