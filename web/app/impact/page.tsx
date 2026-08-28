@@ -7,17 +7,16 @@ import { DriverBreakdown } from "@/components/DriverBreakdown";
 import { RiskProjection } from "@/components/RiskProjection";
 import { ZONES, coolingGapZones, nearestZone, zoneLabel } from "@/lib/realData";
 import { RANKING_METRICS } from "@/lib/heatLayers";
-import type { HeatLayerId } from "@/lib/types";
+import type { ZoneMetricId } from "@/lib/types";
 
-const METRIC_FIELD: Record<HeatLayerId, (zone: (typeof ZONES)[number]) => number> = {
+const METRIC_FIELD: Record<ZoneMetricId, (zone: (typeof ZONES)[number]) => number> = {
   peak: (zone) => zone.peakMean,
   mean: (zone) => zone.meanTemp,
-  low: (zone) => zone.meanTemp,
   risk: (zone) => zone.riskScore ?? 0,
 };
 
 export default function ImpactPage() {
-  const [metric, setMetric] = useState<HeatLayerId>("risk");
+  const [metric, setMetric] = useState<ZoneMetricId>("risk");
   const [highlightedZoneId, setHighlightedZoneId] = useState<string | null>(null);
 
   function focusZone(lat: number, lon: number) {

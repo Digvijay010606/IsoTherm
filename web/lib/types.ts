@@ -1,4 +1,6 @@
-export type HeatLayerId = "peak" | "mean" | "low" | "risk";
+export type HeatLayerId = "peak" | "mean" | "low" | "risk" | "exceedance" | "persistence";
+
+export type ZoneMetricId = "peak" | "mean" | "risk";
 
 export type TilesFile = {
   bounds: [number, number, number, number];

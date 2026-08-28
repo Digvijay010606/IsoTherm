@@ -22,10 +22,6 @@
   --heat-4: #c2412e;
   --heat-5: #7e1f1a;
   --danger-ink: #f0857a;
-  --marker-water: #3f8fd0;
-  --marker-cooling: #b7e4ee;
-  --marker-shade: #f0b93f;
-  --marker-medical: #ef6f63;
 }
 
 @theme inline {
@@ -134,6 +130,99 @@ select option {
 
 .app-content-revealed {
   animation: fade-in 320ms ease-out both;
+}
+
+.leaflet-container {
+  background: var(--app);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  outline: none;
+}
+
+.relief-marker {
+  background: none;
+  border: none;
+}
+
+.relief-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  color: var(--app);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  outline: 1px solid rgba(0, 0, 0, 0.45);
+}
+
+.leaflet-container .leaflet-control-zoom a,
+.leaflet-container .leaflet-control-zoom a:link,
+.leaflet-container .leaflet-control-zoom a:visited {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink-2);
+}
+
+.leaflet-container .leaflet-control-zoom a:hover,
+.leaflet-container .leaflet-control-zoom a:focus {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.leaflet-container .leaflet-control-zoom a:active {
+  background: var(--line);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.leaflet-container .leaflet-control-zoom a.leaflet-disabled {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink-5);
+  cursor: default;
+}
+
+.leaflet-bar {
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--app) 88%, transparent);
+  color: var(--ink-4);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-top-left-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+.leaflet-control-attribution a {
+  color: var(--ink-3);
+}
+
+.map-label.leaflet-tooltip {
+  background: color-mix(in srgb, var(--app) 92%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-label.leaflet-tooltip::before {
+  display: none;
+}
+
+.map-label-accent.leaflet-tooltip {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
