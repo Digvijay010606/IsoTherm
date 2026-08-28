@@ -6,6 +6,13 @@
     "south": 29.694598,
     "west": -95.4899
   },
+  "conditions": {
+    "humidityMean": 74.4,
+    "sampleDate": "2026-08-14",
+    "wetBulbMax": 26.3,
+    "wetBulbMean": 25.7,
+    "zonesSampled": 42
+  },
   "granularityMeters": 100,
   "period": {
     "end": "2026-08-14",
@@ -24,6 +31,16 @@
     "context": {
       "fetchedAt": "2026-08-19T16:01:55.982380",
       "provider": "OpenStreetMap via Overpass"
+    },
+    "exposure": {
+      "analytics": [
+        "exceedance",
+        "persistence"
+      ],
+      "endpoint": "/v1/heatmap",
+      "provider": "FortyGuard Temperature API",
+      "thresholdCelsius": 35,
+      "units": "hour"
     },
     "temperature": {
       "analytic": "tcm",

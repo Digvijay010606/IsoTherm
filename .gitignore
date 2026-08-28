@@ -1,5 +1,7 @@
 .env
 data/heat_risk.db
 data/tile_risk_scores.json
+data/zone_env_params.json
 __pycache__/
 data/raw/
+data/analytics/
