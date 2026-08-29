@@ -52,3 +52,120 @@ Example:
 ```text
 Risk Score: 76.4 / 100
 Risk Level: Critical
+
+---
+
+### 🌡️ Temperature Analysis
+
+For each selected location, the dashboard provides:
+
+- Peak temperature
+- Average temperature
+- Temperature comparison with cooler areas
+- Number of hours above 35°C
+- Longest continuous dangerous heat period
+
+This allows users to understand not only how hot a location is, but also how persistent the heat is.
+
+---
+
+### 📊 Heat Risk Drivers
+
+The system breaks down the risk score into contributing factors.
+
+These include:
+
+- Heat exposure
+- Green-cover deficit
+- Cooling-water deficit
+- Shade deficit
+
+This makes the system more explainable instead of providing only a single risk number.
+
+---
+
+### 💧 Nearby Relief & Resources
+
+The map also identifies nearby resources that can help reduce heat exposure.
+
+These include:
+
+- 💧 Water points
+- ❄️ Cooling locations
+- 🌳 Shade shelters
+- 🏥 Medical facilities
+
+The system can also show the distance to nearby relief locations.
+
+---
+
+### 💡 Recommendations
+
+Based on the identified heat-risk factors, the system provides practical recommendations.
+
+Examples include:
+
+- Prioritize shaded rest areas
+- Increase cooling measures
+- Provide worker heat alerts
+- Improve green coverage
+- Increase access to drinking water
+
+---
+
+## 🧠 How the System Works
+
+The overall workflow can be summarized as:
+
+''' text
+Temperature Data
+       │
+       ▼
+Data Collection & Storage
+       │
+       ▼
+Spatial / Location Processing
+       │
+       ▼
+Feature Engineering
+       │
+       ├── Heat Exposure
+       ├── Green Cover
+       ├── Water Availability
+       └── Shade Availability
+       │
+       ▼
+Heat Risk Calculation
+       │
+       ▼
+Risk Classification
+       │
+       ▼
+Recommendations
+       │
+       ▼
+Interactive Web Dashboard
+
+---
+
+## 📡 Data Sources
+
+### 🌡️ FortyGuard
+
+Temperature data is obtained using the **FortyGuard Temperature API.**
+
+The system uses high-resolution temperature information at approximately 100 m spatial resolution.
+
+This allows the system to analyze heat conditions at a much more local level instead of relying only on city-wide temperature values.
+
+### 🗺️ OpenStreetMap
+
+**OpenStreetMap (OSM) data** is used to identify relevant locations and infrastructure around the selected area.
+
+This includes information that can be used for:
+
+- Water points
+- Cooling locations
+- Shade-related infrastructure
+- Medical facilities
+- Other useful urban features
