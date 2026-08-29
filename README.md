@@ -52,6 +52,7 @@ Example:
 ```text
 Risk Score: 76.4 / 100
 Risk Level: Critical
+```
 
 ---
 
@@ -117,7 +118,7 @@ Examples include:
 
 The overall workflow can be summarized as:
 
-''' text
+```text
 Temperature Data
        │
        ▼
@@ -145,6 +146,7 @@ Recommendations
        │
        ▼
 Interactive Web Dashboard
+```
 
 ---
 
@@ -169,3 +171,187 @@ This includes information that can be used for:
 - Shade-related infrastructure
 - Medical facilities
 - Other useful urban features
+
+---
+
+## ⚙️ Tech Stack
+
+**Frontend**
+
+- React
+- JavaScript
+- HTML
+- CSS
+- Interactive mapping
+
+**Data & APIs**
+
+- FortyGuard Temperature API
+- OpenStreetMap
+
+**Data Processing**
+
+- Python
+- Pandas
+- NumPy
+- SQLite
+
+**Deployment**
+
+- Vercel
+
+---
+
+## 🛠️ How to Run the Project Locally
+
+1. Clone the Repository
+
+```text
+git clone https://github.com/Digvijay010606/IsoTherm.git
+```
+
+Move into the project directory:
+
+```text
+cd IsoTherm
+```
+
+2. Install Dependencies
+
+If the frontend uses npm:
+
+```text
+npm install
+```
+
+3. Configure Environment Variables
+
+Create a <key>.env</key> file if required by the project.
+
+Example:
+
+```text
+FORTYGUARD_API_KEY="your_api_key"
+```
+
+Add any other API keys or configuration values required by the project.
+
+Never commit API keys or other secrets to GitHub.
+
+4. Start the Development Server
+
+```text
+npm run dev
+```
+
+The terminal will provide a local URL, usually similar to:
+
+**http://localhost:3000**
+
+Open the URL in your browser.
+
+---
+
+## 🖥️ Recommended Usage
+
+### ⚠️ Desktop View Recommended
+
+IsoTherm is primarily designed for desktop/laptop screens because the application contains:
+
+- Interactive maps
+- Heat layers
+- Multiple information panels
+- Risk-score visualizations
+- Charts and statistics
+- Map markers and controls
+
+For the best experience, use the website in **Desktop View.**
+
+### 📱 Mobile
+
+The project is not optimized primarily for mobile screens.
+
+If you open it on a mobile device, we recommend enabling:
+
+> Desktop Site / Desktop View
+
+from your mobile browser.
+
+---
+
+## 👥 Team
+
+Project: **IsoTherm**
+
+Members:
+
+- https://github.com/Digvijay010606
+- https://github.com/Kanakbaghel
+- https://github.com/iamsiddhesh-dev
+
+---
+
+## 📡 Data Sources & Credits
+
+IsoTherm is built using data and open-source technologies from the following sources:
+
+### 🌡️ FortyGuard
+
+Temperature and heat-related environmental data are provided through the **FortyGuard API**.
+
+We use FortyGuard's high-resolution temperature data to analyze local heat conditions and generate heat-risk insights.
+
+🔗 https://www.fortyguard.com/
+
+**Special thanks to FortyGuard for providing the temperature data API that powers the heat analysis in IsoTherm.**
+
+---
+
+### 🗺️ OpenStreetMap
+
+**OpenStreetMap (OSM)** provides geographic and location data used to identify surrounding infrastructure and relevant locations.
+
+The data is used for features such as:
+
+- Water points
+- Medical facilities
+- Cooling locations
+- Shade-related locations
+- Other nearby urban resources
+
+🔗 https://www.openstreetmap.org/
+
+© OpenStreetMap contributors
+
+---
+
+### 🍃 Leaflet
+
+**Leaflet** is used to create the interactive maps and map-based user interface in IsoTherm.
+
+🔗 https://leafletjs.com/
+
+Leaflet is open-source software licensed under the BSD-2-Clause License.
+
+---
+
+### 🛰️ Esri
+
+**Esri** map tiles and/or geographic services are used as part of the map visualization and geographic representation.
+
+🔗 https://www.esri.com/
+
+Map data and services are subject to Esri's applicable terms of use.
+
+---
+
+## 🙏 Acknowledgements
+
+We would like to thank:
+
+- **FortyGuard** — for providing the temperature API and high-resolution heat data.
+- **OpenStreetMap contributors** — for providing open geographic data.
+- **Leaflet** — for the open-source interactive mapping library.
+- **Esri** — for providing mapping and geographic visualization services.
+
+These technologies and data sources were essential in building the IsoTherm heat-risk mapping platform.
