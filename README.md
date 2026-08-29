@@ -216,17 +216,9 @@ Move into the project directory:
 cd IsoTherm
 ```
 
-2. Install Dependencies
+2. Configure Environment Variables
 
-If the frontend uses npm:
-
-```text
-npm install
-```
-
-3. Configure Environment Variables
-
-Create a <key>.env</key> file if required by the project.
+Create a .env file if required by the project.
 
 Example:
 
@@ -237,6 +229,20 @@ FORTYGUARD_API_KEY="your_api_key"
 Add any other API keys or configuration values required by the project.
 
 Never commit API keys or other secrets to GitHub.
+
+3. Install Dependencies
+
+Move to web/ folder:
+
+```text
+cd web
+```
+
+If the frontend uses npm:
+
+```text
+npm install
+```
 
 4. Start the Development Server
 
