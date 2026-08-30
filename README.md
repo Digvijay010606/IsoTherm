@@ -1,363 +1,91 @@
-# 🌡️ IsoTherm — Urban Heat Risk Mapping & Recommendation System
+<div align="center">
 
-> An interactive heat-risk mapping platform that helps identify heat-stressed urban areas and provides location-based recommendations for reducing heat exposure.
+<img src="https://readme-typing-svg.demolab.com?font=Georgia&size=34&duration=3000&pause=1000&color=E0473E&center=true&vCenter=true&width=650&lines=IsoTherm;Heat+Vulnerability+Mapper;Built+for+FortyGuard+Hackathon+2026" alt="Typing SVG" />
 
-🔗 **Live Demo:** https://iso-therm.vercel.app/
+### Heat vulnerability &amp; outdoor worker safety, mapped block by block — for Houston, TX
 
----
+[![Live Demo](https://img.shields.io/badge/Live_Demo-iso--therm.vercel.app-3fb8c9?style=for-the-badge&logo=vercel&logoColor=white)](https://iso-therm.vercel.app)
+[![Hackathon](https://img.shields.io/badge/FortyGuard-Global_AI_Hackathon_2026-e0473e?style=for-the-badge)](https://www.fortyguard.com/hackathon26)
+[![Made with Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
 
-## 📌 Overview
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:3fb8c9,50:e8a23d,100:e0473e&height=100&section=header" width="100%"/>
 
-**IsoTherm** is an interactive web-based heat-risk mapping system designed to identify areas that are more vulnerable to extreme heat.
+</div>
 
-Instead of showing only temperature, IsoTherm combines temperature and surrounding environmental factors to calculate a **Heat Risk Score** for different locations.
+## Why IsoTherm
 
-The system helps answer questions such as:
+City-wide temperature readings hide the real story. Two neighborhoods a few kilometers apart can face very different heat risk — and the people most exposed to it, outdoor workers, usually get no street-level warning at all.
 
-- Which areas are experiencing higher heat?
-- How severe is the heat risk?
-- How long does an area remain dangerously hot?
-- What factors are contributing to the risk?
-- Where are the nearest water, cooling, shade, and medical facilities?
-- What actions can be taken to reduce heat exposure?
+**IsoTherm turns raw heat and infrastructure data into a local, block-by-block risk picture — and tells you what to actually do about it.**
 
-The project is designed to support **urban planning, public safety, heat mitigation, and climate-resilience decisions**.
+Instead of stopping at "here's a hot area," IsoTherm answers a harder question: *what happens if a city actually acts on it?*
 
 ---
 
-## 🚀 Features
+## What it does
 
-### 🗺️ Interactive Heat Map
+| Feature | Description |
+|---|---|
+| 🗺️ **Interactive heat map** | 9,900+ tiles at 100 m resolution across Houston, pulling live temperature from the **FortyGuard Temperature API** |
+| 🌡️ **Heat risk score** | A 0–100 score per zone, weighing heat exposure against green-cover, cooling-water, and shade deficits |
+| 📊 **Impact dashboard** | A public, no-login transparency view ranking all zones by risk, with a cooling-coverage-gap report for city planners |
+| 🎯 **Projected score** | Select recommended interventions and see the *modeled* before → after risk score, at the risk engine's own published weights |
+| 🦺 **Safety companion** | Plain-language, OSHA/NIOSH-aligned guidance for outdoor workers — what's driving the risk here, and warning signs to stop work immediately |
+| 📍 **Community reporting** | Anonymous, location-rounded reports of no-shade, no-water, or unsafe conditions, feeding straight back onto the map |
 
-The application displays heat-risk information across the map using high-resolution temperature data.
-
-Users can:
-
-- Search for a place or street
-- Explore different locations
-- Click on map zones
-- View heat-risk information for individual areas
-- Identify hotspots
+Relief infrastructure — water points, cooling locations, shade shelters, and medical facilities — comes from **OpenStreetMap**.
 
 ---
 
-### 🔥 Heat Risk Score
+## See it live
 
-Each selected zone receives a **Heat Risk Score from 0–100**.
+🔗 **[iso-therm.vercel.app](https://iso-therm.vercel.app)**
 
-The score represents the combined heat-related risk of the selected location.
+| Map | Impact | Safety |
+|---|---|---|
+| Block-level heat + risk score | 42 zones ranked, projected-score modeling | Worker-facing guidance |
 
-Example:
+<img width="900" height="560" alt="isotherm_projected_score" src="https://github.com/user-attachments/assets/a21ce945-6c40-48ba-af03-bfdf851db080" />
 
-```text
-Risk Score: 76.4 / 100
-Risk Level: Critical
+---
+
+## How it works
+
+```
+FortyGuard Temperature API ─┐
+                             ├─▶ Feature engineering ─▶ Risk engine ─▶ Risk score
+OpenStreetMap infrastructure ┘                                            │
+                                                                            ▼
+                                                        Recommendations ─▶ Projected score
+                                                                            │
+                                                                            ▼
+                                                              Interactive web dashboard
 ```
 
----
-
-### 🌡️ Temperature Analysis
-
-For each selected location, the dashboard provides:
-
-- Peak temperature
-- Average temperature
-- Temperature comparison with cooler areas
-- Number of hours above 35°C
-- Longest continuous dangerous heat period
-
-This allows users to understand not only how hot a location is, but also how persistent the heat is.
+1. Fetch and cache environmental data (FortyGuard) and infrastructure data (OpenStreetMap) per 100 m tile.
+2. Engineer features: heat exposure, green-cover deficit, cooling-water deficit, shade deficit.
+3. Score each zone 0–100 and rank city-wide.
+4. Generate recommended interventions per zone.
+5. Model a projected score by reducing each targeted deficit at its published weight — a projection, not a measured outcome.
 
 ---
 
-### 📊 Heat Risk Drivers
+## Team
 
-The system breaks down the risk score into contributing factors.
+Built for the **FortyGuard Global AI Hackathon 2026**.
 
-These include:
-
-- Heat exposure
-- Green-cover deficit
-- Cooling-water deficit
-- Shade deficit
-
-This makes the system more explainable instead of providing only a single risk number.
+| Names | Roles | 
+|---|---|
+| **[Digvijay Singh Shekhawat](https://www.linkedin.com/in/digvijay-singh-shekhawat-20b203365/)** | Team Lead | 
+| **[Siddhesh Kawat](https://www.linkedin.com/in/siddheshkasat/)** | Website |
+| **[Kanak Baghel](https://www.linkedin.com/in/kanakbaghel/)** | Data |
 
 ---
 
-### 💧 Nearby Relief & Resources
+## Disclaimer
 
-The map also identifies nearby resources that can help reduce heat exposure.
+The risk score is a transparent prototype measure, not a medically validated threshold, and does not indicate whether conditions are safe right now. Safety guidance is general information, not medical advice. If someone shows signs of heat illness, call emergency services immediately.
 
-These include:
-
-- 💧 Water points
-- ❄️ Cooling locations
-- 🌳 Shade shelters
-- 🏥 Medical facilities
-
-The system can also show the distance to nearby relief locations.
-
----
-
-### 💡 Recommendations
-
-Based on the identified heat-risk factors, the system provides practical recommendations.
-
-Examples include:
-
-- Prioritize shaded rest areas
-- Increase cooling measures
-- Provide worker heat alerts
-- Improve green coverage
-- Increase access to drinking water
-
----
-
-## 🧠 How the System Works
-
-The overall workflow can be summarized as:
-
-```text
-Temperature Data
-       │
-       ▼
-Data Collection & Storage
-       │
-       ▼
-Spatial / Location Processing
-       │
-       ▼
-Feature Engineering
-       │
-       ├── Heat Exposure
-       ├── Green Cover
-       ├── Water Availability
-       └── Shade Availability
-       │
-       ▼
-Heat Risk Calculation
-       │
-       ▼
-Risk Classification
-       │
-       ▼
-Recommendations
-       │
-       ▼
-Interactive Web Dashboard
-```
-
----
-
-## 📡 Data Sources
-
-### 🌡️ FortyGuard
-
-Temperature data is obtained using the **FortyGuard Temperature API.**
-
-The system uses high-resolution temperature information at approximately 100 m spatial resolution.
-
-This allows the system to analyze heat conditions at a much more local level instead of relying only on city-wide temperature values.
-
-### 🗺️ OpenStreetMap
-
-**OpenStreetMap (OSM) data** is used to identify relevant locations and infrastructure around the selected area.
-
-This includes information that can be used for:
-
-- Water points
-- Cooling locations
-- Shade-related infrastructure
-- Medical facilities
-- Other useful urban features
-
----
-
-## ⚙️ Tech Stack
-
-**Frontend**
-
-- React
-- JavaScript
-- HTML
-- CSS
-- Interactive mapping
-
-**Data & APIs**
-
-- FortyGuard Temperature API
-- OpenStreetMap
-
-**Data Processing**
-
-- Python
-- Pandas
-- NumPy
-- SQLite
-
-**Deployment**
-
-- Vercel
-
----
-
-## 🛠️ How to Run the Project Locally
-
-1. Clone the Repository
-
-```text
-git clone https://github.com/Digvijay010606/IsoTherm.git
-```
-
-Move into the project directory:
-
-```text
-cd IsoTherm
-```
-
-2. Configure Environment Variables
-
-Create a .env file if required by the project.
-
-Example:
-
-```text
-FORTYGUARD_API_KEY="your_api_key"
-```
-
-Add any other API keys or configuration values required by the project.
-
-Never commit API keys or other secrets to GitHub.
-
-3. Install Dependencies
-
-Move to web/ folder:
-
-```text
-cd web
-```
-
-If the frontend uses npm:
-
-```text
-npm install
-```
-
-4. Start the Development Server
-
-```text
-npm run dev
-```
-
-The terminal will provide a local URL, usually similar to:
-
-**http://localhost:3000**
-
-Open the URL in your browser.
-
----
-
-## 🖥️ Recommended Usage
-
-### ⚠️ Desktop View Recommended
-
-IsoTherm is primarily designed for desktop/laptop screens because the application contains:
-
-- Interactive maps
-- Heat layers
-- Multiple information panels
-- Risk-score visualizations
-- Charts and statistics
-- Map markers and controls
-
-For the best experience, use the website in **Desktop View.**
-
-### 📱 Mobile
-
-The project is not optimized primarily for mobile screens.
-
-If you open it on a mobile device, we recommend enabling:
-
-> Desktop Site / Desktop View
-
-from your mobile browser.
-
----
-
-## 👥 Team
-
-Project: **IsoTherm**
-
-Members:
-
-- https://github.com/Digvijay010606
-- https://github.com/Kanakbaghel
-- https://github.com/iamsiddhesh-dev
-
----
-
-## 📡 Data Sources & Credits
-
-IsoTherm is built using data and open-source technologies from the following sources:
-
-### 🌡️ FortyGuard
-
-Temperature and heat-related environmental data are provided through the **FortyGuard API**.
-
-We use FortyGuard's high-resolution temperature data to analyze local heat conditions and generate heat-risk insights.
-
-🔗 https://www.fortyguard.com/
-
-**Special thanks to FortyGuard for providing the temperature data API that powers the heat analysis in IsoTherm.**
-
----
-
-### 🗺️ OpenStreetMap
-
-**OpenStreetMap (OSM)** provides geographic and location data used to identify surrounding infrastructure and relevant locations.
-
-The data is used for features such as:
-
-- Water points
-- Medical facilities
-- Cooling locations
-- Shade-related locations
-- Other nearby urban resources
-
-🔗 https://www.openstreetmap.org/
-
-© OpenStreetMap contributors
-
----
-
-### 🍃 Leaflet
-
-**Leaflet** is used to create the interactive maps and map-based user interface in IsoTherm.
-
-🔗 https://leafletjs.com/
-
-Leaflet is open-source software licensed under the BSD-2-Clause License.
-
----
-
-### 🛰️ Esri
-
-**Esri** map tiles and/or geographic services are used as part of the map visualization and geographic representation.
-
-🔗 https://www.esri.com/
-
-Map data and services are subject to Esri's applicable terms of use.
-
----
-
-## 🙏 Acknowledgements
-
-We would like to thank:
-
-- **FortyGuard** — for providing the temperature API and high-resolution heat data.
-- **OpenStreetMap contributors** — for providing open geographic data.
-- **Leaflet** — for the open-source interactive mapping library.
-- **Esri** — for providing mapping and geographic visualization services.
-
-These technologies and data sources were essential in building the IsoTherm heat-risk mapping platform.
+<div align="center">
+<sub>Built with ❤️ and too much coffee for FortyGuard Hackathon 2026.</sub>
+</div>
