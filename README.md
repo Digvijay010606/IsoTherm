@@ -74,11 +74,11 @@ OpenStreetMap infrastructure ┘                                            │
 
 Built for the **FortyGuard Global AI Hackathon 2026**.
 
-| | |
+| Names | Roles | 
 |---|---|
-| **Digvijay** | Team Lead |
-| **Siddhesh** | Website |
-| **Kanak** | Data |
+| **[Digvijay Singh Shekhawat](https://www.linkedin.com/in/digvijay-singh-shekhawat-20b203365/)** | Team Lead | 
+| **[Siddhesh Kawat](https://www.linkedin.com/in/siddheshkasat/)** | Website |
+| **[Kanak Baghel](https://www.linkedin.com/in/kanakbaghel/)** | Data |
 
 ---
 
